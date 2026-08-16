@@ -11,6 +11,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Card } from '../../components/ui/Card';
 import { ProgressBar } from '../../components/ui/ProgressBar';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { isDarkMode } = useTheme();
   const { user } = useAuthContext();
+  const { isOnline } = useNetwork();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
   // Real-time live Firestore & Realtime DB hooks
@@ -69,6 +71,14 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.topIcons}>
+          {!isOnline && (
+            <TouchableOpacity
+              style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}
+              onPress={() => router.push('/screens/settings')}
+            >
+              <Ionicons name="cloud-offline" size={20} color="#D97706" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: theme.card }]}
             onPress={() => router.push('/screens/live-status')}

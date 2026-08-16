@@ -1,5 +1,10 @@
 import {
+  initializeFirestore,
   getFirestore,
+  persistentLocalCache,
+  persistentSingleTabManager,
+  enableNetwork,
+  disableNetwork,
   collection,
   doc,
   setDoc,
@@ -19,7 +24,34 @@ import {
 } from 'firebase/firestore';
 import { app } from './config';
 
-export const db: Firestore = getFirestore(app);
+let firestoreDb: Firestore;
+
+try {
+  firestoreDb = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      tabManager: persistentSingleTabManager(undefined),
+    }),
+  });
+} catch (e) {
+  firestoreDb = getFirestore(app);
+}
+
+export const db: Firestore = firestoreDb;
+
+/**
+ * Control Firestore network connection (useful for offline mode testing and battery saving)
+ */
+export async function setFirestoreNetworkEnabled(enabled: boolean): Promise<void> {
+  try {
+    if (enabled) {
+      await enableNetwork(db);
+    } else {
+      await disableNetwork(db);
+    }
+  } catch (err) {
+    console.warn('Firestore network toggle error:', err);
+  }
+}
 
 // Collection path helper functions enforcing user data isolation
 export function getUserDocRef(userId: string) {

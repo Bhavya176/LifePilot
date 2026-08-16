@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
@@ -27,6 +28,7 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { isDarkMode, toggleTheme } = useTheme();
   const { signOut } = useAuthContext();
+  const { isOnline, isOfflineModeManual, toggleOfflineMode } = useNetwork();
   const { config: remoteCfg } = useRemoteConfig();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const fbStatus = checkFirebaseStatus();
@@ -94,8 +96,43 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
+        {/* Offline Persistence & Network Mode Section */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+          Offline Persistence & Data Sync
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <View style={styles.configRow}>
+            <Text style={[styles.configKey, { color: theme.textSecondary }]}>Firestore Local Cache:</Text>
+            <Text style={[styles.configVal, { color: theme.success }]}>Persistent (IndexedDB/RN)</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.configRow}>
+            <Text style={[styles.configKey, { color: theme.textSecondary }]}>Current Network State:</Text>
+            <Text style={[styles.configVal, { color: isOnline ? theme.success : theme.warning }]}>
+              {isOnline ? 'Online (Live Cloud Sync)' : 'Offline (Local Cache Only)'}
+            </Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.settingRow}>
+            <View>
+              <Text style={[styles.settingLabel, { color: theme.textPrimary, marginLeft: 0 }]}>
+                Simulate Offline Mode (Dev Test)
+              </Text>
+              <Text style={{ fontSize: fs(11), color: theme.textSecondary, marginTop: vs(2) }}>
+                Test creating tasks/notes without internet
+              </Text>
+            </View>
+            <Switch
+              value={isOfflineModeManual}
+              onValueChange={toggleOfflineMode}
+              trackColor={{ false: '#CBD5E1', true: theme.warning }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+        </Card>
+
         {/* Firebase App Check Security Section (Phase 10) */}
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: SPACING.lg }]}>
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
           Firebase App Check Protection
         </Text>
         <Card isDarkMode={isDarkMode}>
