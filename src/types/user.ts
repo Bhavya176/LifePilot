@@ -2,6 +2,7 @@ export interface UserProfile {
   uid: string;
   name: string;
   email: string;
+  emailVerified?: boolean;
   profileImage?: string;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string

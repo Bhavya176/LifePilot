@@ -18,6 +18,12 @@ export default function ScreensLayout() {
       <Stack.Screen name="summary" />
       <Stack.Screen name="profile" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="community-chat" />
+      <Stack.Screen name="focus-room" />
+      <Stack.Screen name="pomodoro" />
+      <Stack.Screen name="analytics" />
+      <Stack.Screen name="calendar" />
+      <Stack.Screen name="search" />
       <Stack.Screen name="about" />
       <Stack.Screen name="privacy" />
     </Stack>

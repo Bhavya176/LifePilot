@@ -53,7 +53,53 @@ export default function NoteDetailScreen() {
     Alert.alert('Attach File or Image', 'Choose the attachment source:', [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Choose Image from Photos',
+        text: '📷 Take Photo with Camera',
+        onPress: async () => {
+          try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission Denied', 'Camera permission is required.');
+              return;
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+              quality: 0.8,
+              allowsEditing: true,
+            });
+
+            if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+            const asset = result.assets[0];
+            setUploadingAttachment(true);
+            const uid = user?.uid || 'user-123';
+            const fileName = `note_cam_${Date.now()}.jpg`;
+
+            const { downloadUrl } = await uploadUserFile(
+              uid,
+              'notes',
+              fileName,
+              asset.uri,
+              'image/jpeg'
+            );
+
+            const newAttachment: NoteAttachment = {
+              id: `att_${Date.now()}`,
+              name: fileName,
+              url: downloadUrl,
+              size: asset.fileSize || 0,
+              type: 'image',
+            };
+
+            setAttachments((prev) => [...prev, newAttachment]);
+          } catch (err: any) {
+            Alert.alert('Camera Error', err.message || 'Failed to capture photo.');
+          } finally {
+            setUploadingAttachment(false);
+          }
+        },
+      },
+      {
+        text: '🖼️ Choose Image from Photos',
         onPress: async () => {
           try {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -71,7 +117,8 @@ export default function NoteDetailScreen() {
 
             const asset = result.assets[0];
             setUploadingAttachment(true);
-            const uid = user?.uid || 'demo-user-123';
+            const uid = user?.uid;
+            if (!uid) throw new Error('User must be signed in.');
             const fileName = `note_img_${Date.now()}.jpg`;
 
             const { downloadUrl, storagePath } = await uploadUserFile(
@@ -111,7 +158,8 @@ export default function NoteDetailScreen() {
 
             const file = result.assets[0];
             setUploadingAttachment(true);
-            const uid = user?.uid || 'demo-user-123';
+            const uid = user?.uid;
+            if (!uid) throw new Error('User must be signed in.');
             const safeName = file.name || `note_doc_${Date.now()}`;
 
             const { downloadUrl, storagePath } = await uploadUserFile(

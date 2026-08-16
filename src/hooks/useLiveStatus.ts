@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import { auth } from '../firebase/auth';
 import {
   setUserLiveStatus,
   subscribeUserLiveStatus,
@@ -15,9 +16,14 @@ export function useLiveStatus() {
   });
   const [loading, setLoading] = useState<boolean>(true);
 
-  const activeUid = user?.uid || 'demo-user-123';
+  const activeUid = auth.currentUser?.uid || user?.uid;
 
   useEffect(() => {
+    if (!activeUid) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const unsubscribe = subscribeUserLiveStatus(activeUid, (updatedPresence) => {
       setPresence(updatedPresence || { status: 'Working', lastUpdated: new Date().toISOString() });
@@ -28,6 +34,7 @@ export function useLiveStatus() {
   }, [activeUid]);
 
   const changeStatus = async (newStatus: LiveStatusState) => {
+    if (!activeUid) return;
     await setUserLiveStatus(activeUid, newStatus);
   };
 

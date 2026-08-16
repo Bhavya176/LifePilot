@@ -25,12 +25,21 @@ import { useHabits } from '../../hooks/useHabits';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useGoals } from '../../hooks/useGoals';
 import { useLiveStatus } from '../../hooks/useLiveStatus';
+import { useFocusRoom } from '../../hooks/useFocusRoom';
+import { useRemoteConfig } from '../../hooks/useRemoteConfig';
+import { useGamification } from '../../hooks/useGamification';
+import { DynamicAnnouncementBanner } from '../../components/ui/DynamicAnnouncementBanner';
+import { DynamicDailyQuoteCard } from '../../components/ui/DynamicDailyQuoteCard';
+import { UnifiedOverviewCard } from '../../components/ui/UnifiedOverviewCard';
+import { LevelUpOverlay } from '../../components/ui/LevelUpOverlay';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { isDarkMode } = useTheme();
   const { user } = useAuthContext();
   const { isOnline } = useNetwork();
+  const { announcement, dailyQuote, refetchConfig } = useRemoteConfig();
+  const { profile: xpProfile, currentLevel, levelProgress, levelUpVisible, dismissLevelUp } = useGamification();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
   // Real-time live Firestore & Realtime DB hooks
@@ -39,6 +48,7 @@ export default function HomeScreen() {
   const { expenses } = useExpenses();
   const { goals } = useGoals();
   const { status } = useLiveStatus();
+  const { activeUsers: focusUsers } = useFocusRoom();
 
   const greeting = getGreeting();
   const userName = user?.name || 'Explorer';
@@ -81,6 +91,18 @@ export default function HomeScreen() {
           )}
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: theme.card }]}
+            onPress={() => router.push('/screens/search')}
+          >
+            <Ionicons name="search-outline" size={20} color={theme.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: theme.card }]}
+            onPress={() => router.push('/screens/calendar')}
+          >
+            <Ionicons name="calendar-outline" size={20} color={theme.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconBtn, { backgroundColor: theme.card }]}
             onPress={() => router.push('/screens/live-status')}
           >
             <Ionicons name="radio-outline" size={20} color={theme.accent} />
@@ -108,70 +130,93 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Status & Overview Banner */}
-        <Card isDarkMode={isDarkMode} style={styles.overviewCard}>
-          <View style={styles.overviewHeader}>
-            <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-              Today's Overview
+        {/* Dynamic Remote Announcement Banner (Remote Config) */}
+        <DynamicAnnouncementBanner
+          enabled={announcement.enabled}
+          text={announcement.text}
+          type={announcement.type}
+          actionTitle={announcement.actionTitle}
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Dynamic Daily Motivational Quote Card (Remote Config) */}
+        <DynamicDailyQuoteCard
+          enabled={dailyQuote.enabled}
+          text={dailyQuote.text}
+          author={dailyQuote.author}
+          onRefresh={refetchConfig}
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Unified Overview & Gamification XP Card */}
+        <UnifiedOverviewCard
+          totalXP={xpProfile.totalXP}
+          currentLevel={currentLevel}
+          levelProgress={levelProgress}
+          status={status}
+          tasksCompleted={tasksCompleted}
+          tasksTotal={tasksTotal}
+          habitsCompleted={habitsCompleted}
+          habitsTotal={habitsTotal}
+          bestStreak={xpProfile.bestStreak}
+          todayExpense={todayExpense}
+          activeGoal={activeGoal}
+          onStatusPress={() => router.push('/screens/live-status')}
+          onAnalyticsPress={() => router.push('/screens/analytics')}
+          onGoalPress={() => router.push('/screens/goals')}
+          isDarkMode={isDarkMode}
+        />
+
+        {/* Real-Time Live Community & Focus Room Hub */}
+        <Card isDarkMode={isDarkMode} style={styles.communityCard}>
+          <View style={styles.communityHeader}>
+            <View style={styles.communityTitleRow}>
+              <View style={[styles.pulseCircle, { backgroundColor: '#10B981' }]} />
+              <Text style={[styles.communityTitle, { color: theme.textPrimary }]}>
+                Live Co-Working & Chat
+              </Text>
+            </View>
+            <Text style={[styles.activeUsersCount, { color: theme.primary }]}>
+              👥 {focusUsers.length} Active Now
             </Text>
-            <TouchableOpacity onPress={() => router.push('/screens/live-status')}>
-              <Badge label={`Status: ${status}`} variant="info" isDarkMode={isDarkMode} />
-            </TouchableOpacity>
           </View>
-
-          <View style={styles.overviewGrid}>
-            <View style={styles.statBox}>
-              <Ionicons name="checkbox-outline" size={22} color={theme.primary} />
-              <Text style={[styles.statValue, { color: theme.textPrimary }]}>
-                {tasksCompleted}/{tasksTotal}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Tasks</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Ionicons name="flame-outline" size={22} color={theme.warning} />
-              <Text style={[styles.statValue, { color: theme.textPrimary }]}>
-                {habitsCompleted}/{habitsTotal}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Habits</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Ionicons name="wallet-outline" size={22} color={theme.danger} />
-              <Text style={[styles.statValue, { color: theme.textPrimary }]}>
-                {formatCurrency(todayExpense)}
-              </Text>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Spent Today</Text>
-            </View>
-          </View>
-
-          {/* Active Goal */}
-          {activeGoal ? (
-            <View style={[styles.goalSnippet, { backgroundColor: theme.primaryLight }]}>
-              <View style={styles.goalRow}>
-                <Text style={[styles.goalTitle, { color: theme.textPrimary }]}>
-                  🎯 {activeGoal.title}
-                </Text>
-                <Text style={[styles.goalProgressText, { color: theme.primary }]}>
-                  {activeGoal.currentValue} / {activeGoal.targetValue} {activeGoal.unit || ''}
-                </Text>
-              </View>
-              <ProgressBar
-                progress={activeGoal.targetValue > 0 ? activeGoal.currentValue / activeGoal.targetValue : 0}
-                color={theme.primary}
-                isDarkMode={isDarkMode}
-              />
-            </View>
-          ) : (
+          <Text style={[styles.communitySub, { color: theme.textSecondary }]}>
+            Work live alongside community members or join the real-time discussion chat.
+          </Text>
+          <View style={styles.communityButtonsRow}>
             <TouchableOpacity
-              style={[styles.goalSnippet, { backgroundColor: theme.primaryLight, alignItems: 'center' }]}
-              onPress={() => router.push('/screens/goals')}
+              style={[styles.hubBtn, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/screens/focus-room')}
+              activeOpacity={0.8}
             >
-              <Text style={[styles.goalTitle, { color: theme.primary }]}>
-                🎯 Tap to add your first personal goal
-              </Text>
+              <Ionicons name="people" size={15} color="#FFFFFF" />
+              <Text style={styles.hubBtnText} numberOfLines={1}>Focus Room</Text>
             </TouchableOpacity>
-          )}
+
+            <TouchableOpacity
+              style={[
+                styles.hubBtnOutline,
+                { borderColor: theme.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' },
+              ]}
+              onPress={() => router.push('/screens/pomodoro')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="timer-outline" size={15} color="#EF4444" />
+              <Text style={[styles.hubBtnOutlineText, { color: theme.textPrimary }]} numberOfLines={1}>Pomodoro</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.hubBtnOutline,
+                { borderColor: theme.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' },
+              ]}
+              onPress={() => router.push('/screens/community-chat')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubbles-outline" size={15} color={theme.primary} />
+              <Text style={[styles.hubBtnOutlineText, { color: theme.textPrimary }]} numberOfLines={1}>Live Chat</Text>
+            </TouchableOpacity>
+          </View>
         </Card>
 
         {/* Quick Actions */}
@@ -374,6 +419,14 @@ export default function HomeScreen() {
           </Card>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Level Up Celebration Overlay */}
+      <LevelUpOverlay
+        visible={levelUpVisible}
+        level={currentLevel}
+        onDismiss={dismissLevelUp}
+        isDarkMode={isDarkMode}
+      />
     </SafeAreaView>
   );
 }
@@ -557,5 +610,73 @@ const styles = StyleSheet.create({
     color: '#E0E7FF',
     fontSize: fs(12),
     marginTop: vs(2),
+  },
+  communityCard: {
+    padding: s(SPACING.md),
+    marginBottom: vs(SPACING.md),
+  },
+  communityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: vs(4),
+  },
+  communityTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pulseCircle: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+    marginRight: s(6),
+  },
+  communityTitle: {
+    fontSize: fs(14.5),
+    fontWeight: '700',
+  },
+  activeUsersCount: {
+    fontSize: fs(12),
+    fontWeight: '700',
+  },
+  communitySub: {
+    fontSize: fs(12),
+    lineHeight: fs(17),
+    marginBottom: vs(SPACING.sm),
+  },
+  communityButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: s(6),
+  },
+  hubBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(8),
+    paddingHorizontal: s(4),
+    borderRadius: ms(RADIUS.md),
+  },
+  hubBtnText: {
+    color: '#FFFFFF',
+    fontSize: fs(11),
+    fontWeight: '700',
+    marginLeft: s(3),
+  },
+  hubBtnOutline: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(8),
+    paddingHorizontal: s(4),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1,
+  },
+  hubBtnOutlineText: {
+    fontSize: fs(11),
+    fontWeight: '700',
+    marginLeft: s(3),
   },
 });

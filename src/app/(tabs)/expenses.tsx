@@ -199,62 +199,67 @@ export default function ExpensesScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <Header
         title="Expenses"
-        subtitle="Track daily spending & categories"
+        subtitle="Spending analytics & monthly budgets"
         isDarkMode={isDarkMode}
         rightAction={
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
-              style={[
-                styles.addBtn,
-                { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', marginRight: s(SPACING.xs) },
-              ]}
-              onPress={() => setExportModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="download-outline" size={18} color={theme.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.addBtn, { backgroundColor: theme.primary }]}
-              onPress={() => setModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.exportPillBtn,
+              { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', borderColor: theme.border },
+            ]}
+            onPress={() => setExportModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="download-outline" size={16} color={theme.primary} />
+            <Text style={[styles.exportPillText, { color: theme.primary }]}>Export</Text>
+          </TouchableOpacity>
         }
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Totals Summary Banner */}
+        {/* Modern Fintech Totals Summary Hero Card */}
         <Card isDarkMode={isDarkMode} style={styles.totalsCard}>
-          <Text style={[styles.cardTitle, { color: theme.textSecondary }]}>
-            This Month's Spending
-          </Text>
+          <View style={styles.totalsHeaderRow}>
+            <View style={[styles.periodBadge, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="calendar-outline" size={13} color={theme.primary} />
+              <Text style={[styles.periodBadgeText, { color: theme.primary }]}>
+                {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+            </View>
+            <Text style={[styles.cardTitle, { color: theme.textSecondary }]}>
+              Total Spent
+            </Text>
+          </View>
+
           <Text style={[styles.mainTotal, { color: theme.textPrimary }]}>
             {formatCurrency(monthTotal)}
           </Text>
-          <Text style={[styles.mainTotalLabel, { color: theme.textMuted }]}>
-            {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </Text>
 
-          <View style={[styles.totalsGrid, { borderTopColor: theme.border }]}>
-            <View style={styles.totalBox}>
-              <Text style={[styles.subTotal, { color: theme.primary }]}>
+          {/* 2 Quick Stat Tiles */}
+          <View style={styles.statTilesRow}>
+            <View style={[styles.statTile, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+              <View style={styles.statTileHeader}>
+                <Ionicons name="today-outline" size={14} color={theme.primary} />
+                <Text style={[styles.statTileLabel, { color: theme.textSecondary }]}>Today</Text>
+              </View>
+              <Text style={[styles.statTileValue, { color: theme.textPrimary }]}>
                 {formatCurrency(todayTotal)}
               </Text>
-              <Text style={[styles.subTotalLabel, { color: theme.textSecondary }]}>Today</Text>
             </View>
 
-            <View style={styles.totalBox}>
-              <Text style={[styles.subTotal, { color: theme.accent }]}>
+            <View style={[styles.statTile, { backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' }]}>
+              <View style={styles.statTileHeader}>
+                <Ionicons name="time-outline" size={14} color="#F59E0B" />
+                <Text style={[styles.statTileLabel, { color: theme.textSecondary }]}>Last 7 Days</Text>
+              </View>
+              <Text style={[styles.statTileValue, { color: theme.textPrimary }]}>
                 {formatCurrency(weekTotal)}
               </Text>
-              <Text style={[styles.subTotalLabel, { color: theme.textSecondary }]}>Last 7 Days</Text>
             </View>
           </View>
         </Card>
 
-        {/* Visual Category Distribution Pie Chart */}
+        {/* Visual Category Distribution Donut Chart */}
         <ExpensePieChart expenses={expenses} isDarkMode={isDarkMode} />
 
         {/* Category Budget Limits & Tracking */}
@@ -658,53 +663,77 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  addBtn: {
-    width: ms(36),
-    height: ms(36),
-    borderRadius: ms(RADIUS.full),
+  exportPillBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: s(12),
+    paddingVertical: vs(6),
+    borderRadius: ms(RADIUS.full),
+    borderWidth: 1,
+    gap: s(4),
+  },
+  exportPillText: {
+    fontSize: fs(12),
+    fontWeight: '700',
   },
   scrollContent: {
     paddingHorizontal: s(SPACING.md),
     paddingBottom: vs(110),
   },
   totalsCard: {
-    alignItems: 'center',
-    paddingVertical: vs(SPACING.lg),
+    padding: s(SPACING.md),
     marginBottom: vs(SPACING.md),
   },
+  totalsHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  periodBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(8),
+    paddingVertical: vs(3),
+    borderRadius: ms(RADIUS.full),
+    gap: s(4),
+  },
+  periodBadgeText: {
+    fontSize: fs(11),
+    fontWeight: '700',
+  },
   cardTitle: {
-    fontSize: fs(13),
+    fontSize: fs(12),
     fontWeight: '600',
   },
   mainTotal: {
-    fontSize: fs(32),
-    fontWeight: '800',
-    marginTop: vs(4),
+    fontSize: fs(34),
+    fontWeight: '900',
+    marginTop: vs(6),
+    marginBottom: vs(SPACING.sm),
+    letterSpacing: -0.5,
   },
-  mainTotalLabel: {
-    fontSize: fs(12),
-    marginTop: vs(2),
-  },
-  totalsGrid: {
+  statTilesRow: {
     flexDirection: 'row',
-    width: '100%',
-    marginTop: vs(SPACING.md),
-    paddingTop: vs(SPACING.md),
-    borderTopWidth: 1,
+    gap: s(SPACING.sm),
   },
-  totalBox: {
+  statTile: {
     flex: 1,
+    padding: s(SPACING.sm + 2),
+    borderRadius: ms(RADIUS.md),
+  },
+  statTileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: s(4),
+    marginBottom: vs(4),
   },
-  subTotal: {
-    fontSize: fs(18),
+  statTileLabel: {
+    fontSize: fs(11),
+    fontWeight: '600',
+  },
+  statTileValue: {
+    fontSize: fs(16),
     fontWeight: '800',
-  },
-  subTotalLabel: {
-    fontSize: fs(12),
-    marginTop: vs(2),
   },
   sectionTitle: {
     fontSize: fs(18),

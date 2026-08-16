@@ -3,15 +3,22 @@ import { useAuth } from './useAuth';
 import { habitService } from '../services/habitService';
 import { Habit } from '../types/habit';
 import { auth } from '../firebase/auth';
+import { getGamificationProfile, awardXP, updateBestStreak } from '../services/gamificationService';
 
 export function useHabits() {
   const { user } = useAuth();
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const activeUid = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+  const activeUid = auth.currentUser?.uid || user?.uid;
 
   useEffect(() => {
+    if (!activeUid) {
+      setHabits([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const unsubscribe = habitService.subscribeUserHabits(activeUid, (fetchedHabits) => {
       setHabits(fetchedHabits);
@@ -22,17 +29,27 @@ export function useHabits() {
   }, [activeUid]);
 
   const addHabit = async (data: { title: string; description?: string; frequency?: 'daily' | 'weekly' }) => {
-    const uidToUse = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+    const uidToUse = auth.currentUser?.uid || user?.uid;
+    if (!uidToUse) throw new Error('You must be signed in to add habits.');
     return habitService.createHabit(uidToUse, data);
   };
 
   const toggleHabit = async (habit: Habit, dateStr?: string) => {
-    const uidToUse = auth.currentUser?.uid || user?.uid || 'demo-user-123';
-    return habitService.toggleHabitCompletion(uidToUse, habit, dateStr);
+    const uidToUse = auth.currentUser?.uid || user?.uid;
+    if (!uidToUse) return;
+    const toggled = await habitService.toggleHabitCompletion(uidToUse, habit, dateStr);
+    getGamificationProfile(uidToUse).then((p) => {
+      awardXP(uidToUse, 'COMPLETE_HABIT', p);
+      if (habit.currentStreak) {
+        updateBestStreak(uidToUse, habit.currentStreak + 1, p);
+      }
+    }).catch(() => {});
+    return toggled;
   };
 
   const deleteHabit = async (habitId: string) => {
-    const uidToUse = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+    const uidToUse = auth.currentUser?.uid || user?.uid;
+    if (!uidToUse) return;
     return habitService.deleteHabit(uidToUse, habitId);
   };
 

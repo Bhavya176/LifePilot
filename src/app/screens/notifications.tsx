@@ -19,6 +19,11 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useNotifications } from '../../hooks/useNotifications';
+import {
+  scheduleMorningBriefing,
+  scheduleNightRecap,
+  triggerGoalMilestoneAlert,
+} from '../../firebase/messaging';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function NotificationsScreen() {
@@ -31,6 +36,8 @@ export default function NotificationsScreen() {
     habitReminders: true,
     goalReminders: true,
     dailySummary: true,
+    morningBriefing: true,
+    nightRecap: true,
     documentReminders: false,
     weeklySummary: true,
   });
@@ -52,6 +59,33 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleMorningBriefingTest = async () => {
+    try {
+      await scheduleMorningBriefing(4, 2);
+      Alert.alert('Morning Briefing Scheduled', 'Morning briefing notification will fire in 2 seconds!');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+  const handleNightRecapTest = async () => {
+    try {
+      await scheduleNightRecap(3, 500, 2);
+      Alert.alert('Night Recap Scheduled', 'Evening recap notification will fire in 2 seconds!');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
+  const handleMilestoneTest = async () => {
+    try {
+      await triggerGoalMilestoneAlert('Master React Native & Firebase', 100);
+      Alert.alert('Goal Milestone Triggered', 'Celebration notification dispatched!');
+    } catch (err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <Header
@@ -70,32 +104,21 @@ export default function NotificationsScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* FCM Token Status Indicator */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => {
-            Alert.alert(
-              'FCM Device Push Token',
-              fcmToken || `fcm_device_token_${Date.now()}`,
-              [{ text: 'OK' }]
-            );
-          }}
-        >
-          <Card isDarkMode={isDarkMode} style={styles.tokenCard}>
-            <View style={styles.tokenRow}>
-              <Ionicons name="key-outline" size={20} color={theme.primary} />
-              <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-                <Text style={[styles.tokenTitle, { color: theme.textPrimary }]}>
-                  FCM Push Device Token Status
-                </Text>
-                <Text style={[styles.tokenSub, { color: theme.textSecondary }]} numberOfLines={1}>
-                  {fcmToken ? `Token: ${fcmToken}` : 'Tap to view device push token...'}
-                </Text>
-              </View>
-              <Badge label={fcmToken ? 'Active' : 'Active'} variant="success" isDarkMode={isDarkMode} />
+        {/* Push Notification Service Status Indicator */}
+        <Card isDarkMode={isDarkMode} style={styles.tokenCard}>
+          <View style={styles.tokenRow}>
+            <Ionicons name="notifications-circle" size={24} color={theme.primary} />
+            <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+              <Text style={[styles.tokenTitle, { color: theme.textPrimary }]}>
+                Push Notification Service
+              </Text>
+              <Text style={[styles.tokenSub, { color: theme.textSecondary }]}>
+                Connected & Ready • Instant task & habit reminders
+              </Text>
             </View>
-          </Card>
-        </TouchableOpacity>
+            <Badge label="Active" variant="success" isDarkMode={isDarkMode} />
+          </View>
+        </Card>
 
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Alerts</Text>
@@ -201,6 +224,64 @@ export default function NotificationsScreen() {
               value={prefs.dailySummary}
               onValueChange={() => togglePref('dailySummary')}
               trackColor={{ false: '#94A3B8', true: theme.primary }}
+            />
+          </View>
+        </Card>
+
+        {/* Smart Daily Briefings & Milestone Alerts */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+          Smart Daily Briefings & Milestones
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <View style={styles.prefRow}>
+            <View style={{ flex: 1, marginRight: s(SPACING.sm) }}>
+              <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>🌅 8:00 AM Morning Briefing</Text>
+              <Text style={[styles.prefSub, { color: theme.textSecondary }]}>
+                Daily morning recap of pending tasks and daily plan
+              </Text>
+            </View>
+            <Button
+              title="Preview 🔔"
+              size="sm"
+              variant="outline"
+              onPress={handleMorningBriefingTest}
+              isDarkMode={isDarkMode}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.prefRow}>
+            <View style={{ flex: 1, marginRight: s(SPACING.sm) }}>
+              <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>🌙 9:00 PM Night Recap</Text>
+              <Text style={[styles.prefSub, { color: theme.textSecondary }]}>
+                Evening achievements, habits completed and spending summary
+              </Text>
+            </View>
+            <Button
+              title="Preview 🔔"
+              size="sm"
+              variant="outline"
+              onPress={handleNightRecapTest}
+              isDarkMode={isDarkMode}
+            />
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.prefRow}>
+            <View style={{ flex: 1, marginRight: s(SPACING.sm) }}>
+              <Text style={[styles.prefTitle, { color: theme.textPrimary }]}>🎯 Goal Milestone Alert</Text>
+              <Text style={[styles.prefSub, { color: theme.textSecondary }]}>
+                Instant push alerts when a goal hits 50% or 100%
+              </Text>
+            </View>
+            <Button
+              title="Preview 🔔"
+              size="sm"
+              variant="outline"
+              onPress={handleMilestoneTest}
+              isDarkMode={isDarkMode}
             />
           </View>
         </Card>

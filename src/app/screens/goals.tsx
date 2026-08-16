@@ -25,6 +25,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useGoals } from '../../hooks/useGoals';
 import { Goal } from '../../types/goal';
 import { getTodayString } from '../../utils/dateUtils';
+import { triggerGoalMilestoneAlert } from '../../firebase/messaging';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function GoalsScreen() {
@@ -101,7 +102,13 @@ export default function GoalsScreen() {
     setUpdatingProgress(true);
     try {
       const newCurrent = (selectedGoal.currentValue || 0) + addVal;
+      const pct = (newCurrent / selectedGoal.targetValue) * 100;
       await updateProgress(selectedGoal.id, selectedGoal.targetValue, newCurrent);
+
+      if (pct >= 50) {
+        await triggerGoalMilestoneAlert(selectedGoal.title, pct);
+      }
+
       setProgressModalVisible(false);
       setSelectedGoal(null);
     } catch (err: any) {

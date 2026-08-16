@@ -57,6 +57,13 @@ export default function TasksScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', marginRight: s(SPACING.xs) }]}
+              onPress={() => router.push('/screens/calendar')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="calendar-outline" size={18} color={theme.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', marginRight: s(SPACING.xs) }]}
               onPress={handleExportTasks}
               activeOpacity={0.8}
             >
@@ -150,6 +157,7 @@ export default function TasksScreen() {
                         priority: task.priority,
                         category: task.category,
                         reminder: task.reminder ? 'true' : 'false',
+                        imageUrl: task.imageUrl,
                       },
                     })
                   }
@@ -183,9 +191,14 @@ export default function TasksScreen() {
                       isDarkMode={isDarkMode}
                       style={{ marginLeft: 6 }}
                     />
-                    <Text style={[styles.dueDateText, { color: theme.textMuted }]}>
-                      🕒 {task.dueDate}
-                    </Text>
+                    {task.dueDate ? (
+                      <Text style={[styles.dueDateText, { color: theme.textMuted }]}>
+                        🕒 {task.dueDate}
+                      </Text>
+                    ) : null}
+                    {task.imageUrl ? (
+                      <Badge label="📷 Photo" variant="info" isDarkMode={isDarkMode} style={{ marginLeft: 6 }} />
+                    ) : null}
                   </View>
                 </TouchableOpacity>
                 <TouchableOpacity

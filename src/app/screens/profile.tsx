@@ -20,18 +20,44 @@ import { Header } from '../../components/ui/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { uploadUserFile } from '../../firebase/storage';
-import { updateUserProfile } from '../../firebase/auth';
+import { updateUserProfile, auth } from '../../firebase/auth';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function ProfileScreen() {
   const { isDarkMode } = useTheme();
-  const { user, setUser } = useAuthContext();
+  const { user, setUser, verifyEmail, sendPasswordReset } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
   const [name, setName] = useState(user?.name || '');
   const [email] = useState(user?.email || 'user@example.com');
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  const handleSendVerification = async () => {
+    setSendingVerification(true);
+    try {
+      await verifyEmail();
+      Alert.alert('Verification Sent', `A verification link has been sent to ${email}. Please check your inbox.`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send verification email.');
+    } finally {
+      setSendingVerification(false);
+    }
+  };
+
+  const handleSendResetPassword = async () => {
+    setSendingReset(true);
+    try {
+      await sendPasswordReset(email);
+      Alert.alert('Password Reset Sent', `A password reset link has been dispatched to ${email}.`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send password reset email.');
+    } finally {
+      setSendingReset(false);
+    }
+  };
 
   const handlePickAvatar = async () => {
     try {
@@ -54,7 +80,8 @@ export default function ProfileScreen() {
 
       const asset = result.assets[0];
       setUploadingAvatar(true);
-      const uid = user?.uid || 'demo-user-123';
+      const uid = auth.currentUser?.uid || user?.uid;
+      if (!uid) throw new Error('User must be signed in.');
       const fileName = `avatar_${Date.now()}.jpg`;
 
       const { downloadUrl } = await uploadUserFile(
@@ -144,7 +171,50 @@ export default function ProfileScreen() {
             onPress={handleUpdateProfile}
             loading={loading}
             isDarkMode={isDarkMode}
-            style={{ marginTop: SPACING.sm }}
+            style={{ marginTop: vs(SPACING.sm) }}
+          />
+        </Card>
+
+        {/* Email Verification Card */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+          Account Verification
+        </Text>
+        <Card isDarkMode={isDarkMode} style={styles.card}>
+          <View style={styles.verifyRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.verifyTitle, { color: theme.textPrimary }]}>Email Status</Text>
+              <Text style={[styles.verifySub, { color: user?.emailVerified ? theme.success : theme.warning }]}>
+                {user?.emailVerified ? '✅ Verified (Firebase Auth Secured)' : '⚠️ Unverified Email'}
+              </Text>
+            </View>
+            {!user?.emailVerified && (
+              <Button
+                title="Verify Email"
+                size="sm"
+                variant="outline"
+                onPress={handleSendVerification}
+                loading={sendingVerification}
+                isDarkMode={isDarkMode}
+              />
+            )}
+          </View>
+        </Card>
+
+        {/* Password Reset Section */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+          Security & Password
+        </Text>
+        <Card isDarkMode={isDarkMode} style={styles.card}>
+          <Text style={[styles.passwordSub, { color: theme.textSecondary }]}>
+            Need to update your password? Firebase will send a secure password reset link to your email.
+          </Text>
+          <Button
+            title="Send Password Reset Email 🔑"
+            variant="outline"
+            onPress={handleSendResetPassword}
+            loading={sendingReset}
+            isDarkMode={isDarkMode}
+            style={{ marginTop: vs(SPACING.sm) }}
           />
         </Card>
       </ScrollView>
@@ -192,5 +262,29 @@ const styles = StyleSheet.create({
   },
   card: {
     padding: s(SPACING.lg),
+  },
+  sectionTitle: {
+    fontSize: fs(14.5),
+    fontWeight: '700',
+    marginBottom: vs(SPACING.xs),
+  },
+  verifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  verifyTitle: {
+    fontSize: fs(14),
+    fontWeight: '700',
+  },
+  verifySub: {
+    fontSize: fs(12.5),
+    marginTop: vs(2),
+    fontWeight: '600',
+  },
+  passwordSub: {
+    fontSize: fs(12.5),
+    lineHeight: fs(18),
+    marginBottom: vs(SPACING.xs),
   },
 });

@@ -10,9 +10,15 @@ export interface AppRemoteConfig {
   maintenance_mode: boolean;
   minimum_supported_version: string;
   daily_quote_enabled: boolean;
+  daily_quote_text: string;
+  daily_quote_author: string;
   productivity_insights_enabled: boolean;
   max_free_documents: number;
   show_new_feature_banner: boolean;
+  announcement_banner_enabled: boolean;
+  announcement_banner_text: string;
+  announcement_banner_type: 'info' | 'warning' | 'celebration' | 'maintenance';
+  announcement_banner_action_title: string;
 }
 
 // Safe fallback default configuration values
@@ -20,9 +26,15 @@ export const defaultConfigValues: AppRemoteConfig = {
   maintenance_mode: false,
   minimum_supported_version: '1.0.0',
   daily_quote_enabled: true,
+  daily_quote_text: 'Small daily disciplines repeated consistently lead to monumental lifetime achievements.',
+  daily_quote_author: 'Robin Sharma',
   productivity_insights_enabled: true,
   max_free_documents: 25,
   show_new_feature_banner: true,
+  announcement_banner_enabled: true,
+  announcement_banner_text: '🎉 Welcome to LifePilot v2.0! Real-time Focus Rooms, Instant Chat & Expense Analytics are now live.',
+  announcement_banner_type: 'celebration',
+  announcement_banner_action_title: 'Explore',
 };
 
 let remoteConfigInstance: RemoteConfig | null = null;
@@ -62,6 +74,24 @@ async function fetchRemoteConfigFromRest(): Promise<Partial<AppRemoteConfig> | n
         if (data.entries.daily_quote_enabled !== undefined) {
           parsed.daily_quote_enabled = String(data.entries.daily_quote_enabled).toLowerCase() === 'true';
         }
+        if (data.entries.daily_quote_text !== undefined) {
+          parsed.daily_quote_text = String(data.entries.daily_quote_text);
+        }
+        if (data.entries.daily_quote_author !== undefined) {
+          parsed.daily_quote_author = String(data.entries.daily_quote_author);
+        }
+        if (data.entries.announcement_banner_enabled !== undefined) {
+          parsed.announcement_banner_enabled = String(data.entries.announcement_banner_enabled).toLowerCase() === 'true';
+        }
+        if (data.entries.announcement_banner_text !== undefined) {
+          parsed.announcement_banner_text = String(data.entries.announcement_banner_text);
+        }
+        if (data.entries.announcement_banner_type !== undefined) {
+          parsed.announcement_banner_type = data.entries.announcement_banner_type as any;
+        }
+        if (data.entries.announcement_banner_action_title !== undefined) {
+          parsed.announcement_banner_action_title = String(data.entries.announcement_banner_action_title);
+        }
         if (data.entries.show_new_feature_banner !== undefined) {
           parsed.show_new_feature_banner = String(data.entries.show_new_feature_banner).toLowerCase() === 'true';
         }
@@ -78,13 +108,11 @@ async function fetchRemoteConfigFromRest(): Promise<Partial<AppRemoteConfig> | n
  * Initialize Remote Config with default fallback values and fetch remote updates
  */
 export async function initRemoteConfig(): Promise<AppRemoteConfig> {
-  // Direct REST fetch (Works 100% in React Native without IndexedDB requirements)
   const restConfig = await fetchRemoteConfigFromRest();
   if (restConfig) {
     activeRemoteValues = restConfig;
   }
 
-  // Attempt Web SDK initialization
   try {
     remoteConfigInstance = getRemoteConfig(app);
     remoteConfigInstance.settings = {
@@ -94,7 +122,7 @@ export async function initRemoteConfig(): Promise<AppRemoteConfig> {
     remoteConfigInstance.defaultConfig = defaultConfigValues as any;
     await fetchAndActivate(remoteConfigInstance);
   } catch (error) {
-    // Expected fallback on native runtimes without IndexedDB
+    // Native fallback
   }
 
   return getRemoteConfigValues();
@@ -109,18 +137,28 @@ export function getRemoteConfigValues(): AppRemoteConfig {
   if (remoteConfigInstance) {
     try {
       const maxDocsVal = getValue(remoteConfigInstance, 'max_free_documents');
-      // Only override with SDK value if it actually came from remote server ('remote')
       if (maxDocsVal.getSource() === 'remote') {
         const valNumber = maxDocsVal.asNumber() || Number(maxDocsVal.asString());
         if (valNumber) {
           result.max_free_documents = valNumber;
         }
       }
+      const quoteTextVal = getValue(remoteConfigInstance, 'daily_quote_text');
+      if (quoteTextVal.getSource() === 'remote' && quoteTextVal.asString()) {
+        result.daily_quote_text = quoteTextVal.asString();
+      }
+      const quoteAuthorVal = getValue(remoteConfigInstance, 'daily_quote_author');
+      if (quoteAuthorVal.getSource() === 'remote' && quoteAuthorVal.asString()) {
+        result.daily_quote_author = quoteAuthorVal.asString();
+      }
+      const bannerTextVal = getValue(remoteConfigInstance, 'announcement_banner_text');
+      if (bannerTextVal.getSource() === 'remote' && bannerTextVal.asString()) {
+        result.announcement_banner_text = bannerTextVal.asString();
+      }
     } catch (e) {
       // Use REST/Default fallback
     }
   }
 
-  console.log('[RemoteConfig Final Active Values]:', result);
   return result;
 }

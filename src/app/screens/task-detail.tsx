@@ -13,7 +13,9 @@ import {
 import React, { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuthContext } from '../../context/AuthContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Header } from '../../components/ui/Header';
 import { Input } from '../../components/ui/Input';
@@ -21,8 +23,10 @@ import { Button } from '../../components/ui/Button';
 import { TASK_CATEGORIES, TASK_PRIORITIES } from '../../constants/categories';
 import { TaskCategory, TaskPriority } from '../../types/task';
 import { useTasks } from '../../hooks/useTasks';
+import { uploadUserFile } from '../../firebase/storage';
 import { getTodayString } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { Image, ActivityIndicator } from 'react-native';
 
 export default function TaskDetailScreen() {
   const router = useRouter();
@@ -34,10 +38,12 @@ export default function TaskDetailScreen() {
     priority?: TaskPriority;
     category?: TaskCategory;
     reminder?: string;
+    imageUrl?: string;
   }>();
 
   const isEditing = Boolean(params.id);
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const { addTask, updateTask, deleteTask } = useTasks();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
@@ -47,7 +53,73 @@ export default function TaskDetailScreen() {
   const [priority, setPriority] = useState<TaskPriority>(params.priority || 'medium');
   const [category, setCategory] = useState<TaskCategory>(params.category || 'work');
   const [reminder, setReminder] = useState(params.reminder !== 'false');
+  const [imageUrl, setImageUrl] = useState<string | undefined>(params.imageUrl);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const handlePickImage = () => {
+    Alert.alert('Attach Task Photo', 'Choose photo source:', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Take Photo with Camera',
+        onPress: async () => {
+          try {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission Required', 'Camera permission is needed to take a photo.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              quality: 0.8,
+              allowsEditing: true,
+            });
+            if (!result.canceled && result.assets[0]) {
+              await uploadTaskPhoto(result.assets[0].uri);
+            }
+          } catch (err: any) {
+            Alert.alert('Camera Error', err.message);
+          }
+        },
+      },
+      {
+        text: 'Select from Photo Library',
+        onPress: async () => {
+          try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+              Alert.alert('Permission Required', 'Photo library permission is required.');
+              return;
+            }
+            const result = await ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ['images'],
+              quality: 0.8,
+              allowsEditing: true,
+            });
+            if (!result.canceled && result.assets[0]) {
+              await uploadTaskPhoto(result.assets[0].uri);
+            }
+          } catch (err: any) {
+            Alert.alert('Photo Error', err.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  const uploadTaskPhoto = async (uri: string) => {
+    setUploadingImage(true);
+    try {
+      const uid = user?.uid || 'user-123';
+      const fileName = `task_${Date.now()}.jpg`;
+      const { downloadUrl } = await uploadUserFile(uid, 'tasks', fileName, uri, 'image/jpeg');
+      setImageUrl(downloadUrl);
+      Alert.alert('Photo Attached', 'Image uploaded and linked to this task.');
+    } catch (err: any) {
+      Alert.alert('Upload Error', err.message || 'Failed to upload photo.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!title.trim()) {
@@ -64,6 +136,7 @@ export default function TaskDetailScreen() {
           priority,
           category,
           reminder,
+          imageUrl,
         });
       } else {
         await addTask({
@@ -74,6 +147,7 @@ export default function TaskDetailScreen() {
           category,
           completed: false,
           reminder,
+          imageUrl,
         });
       }
       router.back();
@@ -204,6 +278,43 @@ export default function TaskDetailScreen() {
             })}
           </View>
 
+          {/* Photo Attachment Section */}
+          <Text style={[styles.label, { color: theme.textPrimary, marginTop: vs(SPACING.sm) }]}>
+            Photo Attachment
+          </Text>
+          {imageUrl ? (
+            <View style={styles.attachedImageContainer}>
+              <Image source={{ uri: imageUrl }} style={styles.attachedImage} />
+              <TouchableOpacity
+                style={[styles.removeImageBtn, { backgroundColor: theme.danger }]}
+                onPress={() => setImageUrl(undefined)}
+              >
+                <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.addPhotoBtn,
+                { backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9', borderColor: theme.border },
+              ]}
+              onPress={handlePickImage}
+              disabled={uploadingImage}
+              activeOpacity={0.8}
+            >
+              {uploadingImage ? (
+                <ActivityIndicator size="small" color={theme.primary} />
+              ) : (
+                <>
+                  <Ionicons name="camera-outline" size={22} color={theme.primary} />
+                  <Text style={[styles.addPhotoText, { color: theme.primary }]}>
+                    Attach Photo (Camera / Gallery)
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+
           <View style={styles.reminderRow}>
             <Text style={[styles.label, { color: theme.textPrimary, marginBottom: 0 }]}>
               Enable Reminder Notification
@@ -274,5 +385,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginVertical: vs(SPACING.md),
+  },
+  addPhotoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(SPACING.md),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    marginBottom: vs(SPACING.sm),
+  },
+  addPhotoText: {
+    fontSize: fs(13),
+    fontWeight: '700',
+    marginLeft: s(8),
+  },
+  attachedImageContainer: {
+    position: 'relative',
+    borderRadius: ms(RADIUS.md),
+    overflow: 'hidden',
+    marginBottom: vs(SPACING.sm),
+  },
+  attachedImage: {
+    width: '100%',
+    height: vs(160),
+    borderRadius: ms(RADIUS.md),
+  },
+  removeImageBtn: {
+    position: 'absolute',
+    top: vs(8),
+    right: s(8),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: ms(16),
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

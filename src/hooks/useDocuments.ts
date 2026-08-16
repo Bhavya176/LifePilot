@@ -10,9 +10,15 @@ export function useDocuments() {
   const [loading, setLoading] = useState<boolean>(true);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
-  const activeUid = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+  const activeUid = auth.currentUser?.uid || user?.uid;
 
   useEffect(() => {
+    if (!activeUid) {
+      setDocuments([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const unsubscribe = documentService.subscribeUserDocuments(activeUid, (fetchedDocs) => {
       setDocuments(fetchedDocs);
@@ -27,7 +33,8 @@ export function useDocuments() {
     category: DocumentItem['category'],
     file: { name: string; blob: Blob | Uint8Array | string; size: number; mimeType: string }
   ) => {
-    const uidToUse = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+    const uidToUse = auth.currentUser?.uid || user?.uid;
+    if (!uidToUse) throw new Error('You must be signed in to upload documents.');
     setUploadProgress(0);
     try {
       const docId = await documentService.uploadDocument(
@@ -44,7 +51,8 @@ export function useDocuments() {
   };
 
   const deleteDoc = async (docItem: DocumentItem) => {
-    const uidToUse = auth.currentUser?.uid || user?.uid || 'demo-user-123';
+    const uidToUse = auth.currentUser?.uid || user?.uid;
+    if (!uidToUse) return;
     return documentService.deleteDocument(uidToUse, docItem);
   };
 

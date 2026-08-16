@@ -1,12 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserProfile } from '../types/user';
-import { subscribeToAuthChanges, logoutUser, auth } from '../firebase/auth';
+import {
+  subscribeToAuthChanges,
+  logoutUser,
+  resetPassword,
+  sendVerificationEmail,
+  auth,
+} from '../firebase/auth';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   setUser: (user: UserProfile | null) => void;
   signOut: () => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<void>;
+  verifyEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -14,6 +22,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   setUser: () => {},
   signOut: async () => {},
+  sendPasswordReset: async () => {},
+  verifyEmail: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -23,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         uid: auth.currentUser.uid,
         name: auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || 'User',
         email: auth.currentUser.email || '',
+        emailVerified: auth.currentUser.emailVerified,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -51,11 +62,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const sendPasswordReset = async (email: string) => {
+    await resetPassword(email);
+  };
+
+  const verifyEmail = async () => {
+    await sendVerificationEmail();
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, setUser, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        setUser,
+        signOut,
+        sendPasswordReset,
+        verifyEmail,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuthContext = () => useContext(AuthContext);
+

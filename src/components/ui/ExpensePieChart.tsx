@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import Svg, { G, Path, Circle, Text as SvgText } from 'react-native-svg';
-import { Expense, ExpenseCategory } from '../../types/expense';
+import Svg, { G, Circle } from 'react-native-svg';
+import { Expense } from '../../types/expense';
 import { EXPENSE_CATEGORIES } from '../../constants/categories';
 import { formatCurrency } from '../../utils/formatters';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
@@ -14,14 +14,14 @@ interface ExpensePieChartProps {
 
 export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ expenses, isDarkMode = false }) => {
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
-  const totalSpent = expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalSpent = expenses.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   // Group amounts by category
   const categoryTotals: Record<string, number> = {};
 
   expenses.forEach((e) => {
     const catKey = (e.category || 'Other').toLowerCase();
-    categoryTotals[catKey] = (categoryTotals[catKey] || 0) + (e.amount || 0);
+    categoryTotals[catKey] = (categoryTotals[catKey] || 0) + (Number(e.amount) || 0);
   });
 
   const categoriesWithSpent = EXPENSE_CATEGORIES.map((cat) => {
@@ -31,90 +31,101 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ expenses, isDa
       amount,
       percentage: totalSpent > 0 ? (amount / totalSpent) * 100 : 0,
     };
-  }).filter((cat) => cat.amount > 0);
+  })
+    .filter((cat) => cat.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
 
   if (totalSpent === 0 || categoriesWithSpent.length === 0) {
     return null;
   }
 
-  // SVG dimensions
-  const size = s(180);
-  const radius = size / 2;
-  const strokeWidth = s(28);
-  const innerRadius = radius - strokeWidth;
-  const center = radius;
+  // SVG dimensions for Donut
+  const size = ms(140);
+  const strokeWidth = ms(18);
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
-  // Compute SVG arcs
-  let accumulatedAngle = 0;
+  // Build slice segments for SVG circle dasharray
+  let accumulatedPercent = 0;
   const slices = categoriesWithSpent.map((cat) => {
-    const angle = (cat.amount / totalSpent) * 360;
-    const startAngle = accumulatedAngle;
-    const endAngle = accumulatedAngle + angle;
-    accumulatedAngle += angle;
-
-    // Convert angles to polar coordinates
-    const startRad = ((startAngle - 90) * Math.PI) / 180;
-    const endRad = ((endAngle - 90) * Math.PI) / 180;
-
-    const x1 = center + innerRadius * Math.cos(startRad);
-    const y1 = center + innerRadius * Math.sin(startRad);
-    const x2 = center + innerRadius * Math.cos(endRad);
-    const y2 = center + innerRadius * Math.sin(endRad);
-
-    const x3 = center + radius * Math.cos(endRad);
-    const y3 = center + radius * Math.sin(endRad);
-    const x4 = center + radius * Math.cos(startRad);
-    const y4 = center + radius * Math.sin(startRad);
-
-    const largeArcFlag = angle > 180 ? 1 : 0;
-
-    const pathData = `
-      M ${x1} ${y1}
-      A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}
-      L ${x3} ${y3}
-      A ${radius} ${radius} 0 ${largeArcFlag} 0 ${x4} ${y4}
-      Z
-    `;
-
+    const strokeDash = (cat.percentage / 100) * circumference;
+    const strokeOffset = (accumulatedPercent / 100) * circumference;
+    accumulatedPercent += cat.percentage;
     return {
       ...cat,
-      pathData,
+      strokeDash,
+      strokeOffset,
     };
   });
 
   return (
     <View style={[styles.container, { backgroundColor: theme.card, borderColor: theme.border }]}>
-      <Text style={[styles.title, { color: theme.textPrimary }]}>Spending Distribution</Text>
+      <View style={styles.headerRow}>
+        <Text style={[styles.title, { color: theme.textPrimary }]}>Spending Breakdown</Text>
+        <Text style={[styles.badgeText, { color: theme.primary, backgroundColor: theme.primaryLight }]}>
+          {categoriesWithSpent.length} {categoriesWithSpent.length === 1 ? 'Category' : 'Categories'}
+        </Text>
+      </View>
 
-      <View style={styles.chartRow}>
-        {/* SVG Donut Chart */}
-        <View style={styles.svgWrapper}>
-          <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-            <G>
-              {slices.map((slice, i) => (
-                <Path key={i} d={slice.pathData} fill={slice.color} stroke={theme.card} strokeWidth={2} />
+      <View style={styles.contentRow}>
+        {/* SVG Donut Chart with Center Text */}
+        <View style={styles.chartWrapper}>
+          <Svg width={size} height={size}>
+            {/* Background Track */}
+            <Circle
+              cx={center}
+              cy={center}
+              r={radius}
+              stroke={isDarkMode ? '#1E293B' : '#F1F5F9'}
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            {/* Donut Slices */}
+            <G transform={`rotate(-90 ${center} ${center})`}>
+              {slices.map((slice, idx) => (
+                <Circle
+                  key={idx}
+                  cx={center}
+                  cy={center}
+                  r={radius}
+                  stroke={slice.color}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${slice.strokeDash} ${circumference - slice.strokeDash}`}
+                  strokeDashoffset={-slice.strokeOffset}
+                  fill="transparent"
+                  strokeLinecap={categoriesWithSpent.length === 1 ? 'butt' : 'round'}
+                />
               ))}
             </G>
           </Svg>
-          <View style={styles.centerLabel}>
-            <Text style={[styles.centerSub, { color: theme.textSecondary }]}>Total</Text>
+
+          <View style={styles.centerOverlay}>
+            <Text style={[styles.centerSub, { color: theme.textSecondary }]}>TOTAL</Text>
             <Text style={[styles.centerAmount, { color: theme.textPrimary }]} numberOfLines={1}>
               {formatCurrency(totalSpent)}
             </Text>
           </View>
         </View>
 
-        {/* Legend */}
-        <View style={styles.legendContainer}>
-          {categoriesWithSpent.map((item) => (
-            <View key={item.value} style={styles.legendRow}>
-              <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-              <Text style={[styles.legendLabel, { color: theme.textPrimary }]} numberOfLines={1}>
-                {item.label}
-              </Text>
-              <Text style={[styles.legendPct, { color: theme.textSecondary }]}>
-                {item.percentage.toFixed(0)}%
-              </Text>
+        {/* Categories Legend List */}
+        <View style={styles.legendCol}>
+          {categoriesWithSpent.slice(0, 4).map((item) => (
+            <View key={item.value} style={styles.legendItem}>
+              <View style={styles.legendLeft}>
+                <View style={[styles.dot, { backgroundColor: item.color }]} />
+                <Text style={[styles.legendLabel, { color: theme.textPrimary }]} numberOfLines={1}>
+                  {item.label}
+                </Text>
+              </View>
+              <View style={styles.legendRight}>
+                <Text style={[styles.legendAmount, { color: theme.textPrimary }]}>
+                  {formatCurrency(item.amount)}
+                </Text>
+                <Text style={[styles.legendPercent, { color: theme.textSecondary }]}>
+                  {item.percentage.toFixed(0)}%
+                </Text>
+              </View>
             </View>
           ))}
         </View>
@@ -130,50 +141,74 @@ const styles = StyleSheet.create({
     padding: s(SPACING.md),
     marginBottom: vs(SPACING.md),
   },
-  title: {
-    fontSize: fs(14),
-    fontWeight: '700',
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: vs(SPACING.sm),
   },
-  chartRow: {
+  title: {
+    fontSize: fs(14),
+    fontWeight: '800',
+  },
+  badgeText: {
+    fontSize: fs(10.5),
+    fontWeight: '700',
+    paddingHorizontal: s(8),
+    paddingVertical: vs(3),
+    borderRadius: ms(RADIUS.full),
+  },
+  contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
   },
-  svgWrapper: {
+  chartWrapper: {
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+    width: ms(140),
+    height: ms(140),
   },
-  centerLabel: {
+  centerOverlay: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    paddingHorizontal: s(6),
   },
   centerSub: {
-    fontSize: fs(10),
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontSize: fs(9),
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   centerAmount: {
-    fontSize: fs(14),
-    fontWeight: '800',
-    maxWidth: s(90),
+    fontSize: fs(13),
+    fontWeight: '900',
+    marginTop: vs(1),
+    textAlign: 'center',
   },
-  legendContainer: {
+  legendCol: {
     flex: 1,
     marginLeft: s(SPACING.md),
     justifyContent: 'center',
   },
-  legendRow: {
+  legendItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: vs(3.5),
+  },
+  legendLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: vs(2.5),
+    flex: 1,
+    marginRight: s(4),
   },
-  colorDot: {
-    width: ms(10),
-    height: ms(10),
-    borderRadius: ms(5),
+  dot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
     marginRight: s(6),
   },
   legendLabel: {
@@ -181,9 +216,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  legendPct: {
-    fontSize: fs(11),
+  legendRight: {
+    alignItems: 'flex-end',
+  },
+  legendAmount: {
+    fontSize: fs(11.5),
     fontWeight: '700',
-    marginLeft: s(4),
+  },
+  legendPercent: {
+    fontSize: fs(9.5),
+    fontWeight: '600',
   },
 });

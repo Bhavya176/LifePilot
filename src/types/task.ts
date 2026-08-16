@@ -12,6 +12,7 @@ export interface Task {
   category: TaskCategory;
   completed: boolean;
   reminder: boolean;
+  imageUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

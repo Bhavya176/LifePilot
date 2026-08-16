@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { updateUserDoc } from './firestore';
+import { formatCurrency } from '../utils/formatters';
 
 // Configure notification behavior when app is in foreground
 Notifications.setNotificationHandler({
@@ -52,7 +53,7 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
 }
 
 /**
- * Schedule a local task / habit reminder push notification
+ * Schedule a local push notification
  */
 export async function scheduleLocalReminder(
   title: string,
@@ -69,7 +70,59 @@ export async function scheduleLocalReminder(
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: triggerSeconds,
+      seconds: Math.max(triggerSeconds, 1),
     },
   });
+}
+
+/**
+ * 🌅 Morning Briefing Notification (8:00 AM)
+ */
+export async function scheduleMorningBriefing(pendingTasksCount: number, delaySeconds: number = 3): Promise<string> {
+  const taskText = pendingTasksCount > 0 ? `${pendingTasksCount} tasks scheduled for today` : 'your daily plan ready';
+  return scheduleLocalReminder(
+    '🌅 Good Morning from LifePilot!',
+    `Good Morning! You have ${taskText}. Let's make today focused and productive! 🚀`,
+    delaySeconds,
+    { type: 'morning_briefing' }
+  );
+}
+
+/**
+ * 🌙 Night Recap Notification (9:00 PM)
+ */
+export async function scheduleNightRecap(
+  habitsDoneCount: number,
+  dailySpent: number,
+  delaySeconds: number = 3
+): Promise<string> {
+  const expenseText = dailySpent > 0 ? ` and spent ${formatCurrency(dailySpent)}` : '';
+  return scheduleLocalReminder(
+    '🌙 Daily Night Recap',
+    `શાબાશ! You completed ${habitsDoneCount} habits today${expenseText}. Rest well and recharge! ✨`,
+    delaySeconds,
+    { type: 'night_recap' }
+  );
+}
+
+/**
+ * 🎯 Goal Milestone Alert (50% & 100%)
+ */
+export async function triggerGoalMilestoneAlert(goalTitle: string, progressPct: number): Promise<string | null> {
+  if (progressPct >= 100) {
+    return scheduleLocalReminder(
+      `🏆 Goal Completed: ${goalTitle}!`,
+      `Congratulations! You achieved 100% of your target for "${goalTitle}". Phenomenal achievement! 🎉`,
+      1,
+      { type: 'goal_milestone', progress: progressPct }
+    );
+  } else if (progressPct >= 50) {
+    return scheduleLocalReminder(
+      `🎉 Halfway Milestone: ${goalTitle}`,
+      `You've reached ${progressPct.toFixed(0)}% completion on "${goalTitle}"! Keep up the momentum! 🔥`,
+      1,
+      { type: 'goal_milestone', progress: progressPct }
+    );
+  }
+  return null;
 }

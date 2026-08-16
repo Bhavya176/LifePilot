@@ -34,63 +34,33 @@ export default function DocumentsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const { documents, loading, uploadProgress, uploadDoc, deleteDoc } = useDocuments();
 
-  const handleUploadClick = () => {
-    Alert.alert(
-      'Upload Document',
-      'Choose how you would like to add a document:',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Upload Sample File',
-          onPress: async () => {
-            try {
-              const sampleText = `Sample Document Content - Created ${new Date().toISOString()}`;
-              const blob = new Blob([sampleText], { type: 'text/plain' });
-              await uploadDoc('Receipt_or_Certificate_Doc.txt', 'Receipt', {
-                name: 'Receipt_or_Certificate_Doc.txt',
-                blob: blob,
-                size: blob.size,
-                mimeType: 'text/plain',
-              });
-              Alert.alert('Upload Successful', 'Sample document uploaded to Firebase Storage.');
-            } catch (err: any) {
-              Alert.alert('Upload Error', err.message || 'Failed to upload document.');
-            }
-          },
-        },
-        {
-          text: 'Select File from Device',
-          onPress: async () => {
-            try {
-              const result = await DocumentPicker.getDocumentAsync({
-                type: '*/*',
-                copyToCacheDirectory: true,
-              });
+  const handleUploadClick = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+        copyToCacheDirectory: true,
+      });
 
-              if (result.canceled || !result.assets || result.assets.length === 0) {
-                return;
-              }
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
 
-              const file = result.assets[0];
-              const fileName = file.name || 'uploaded_document';
-              const mimeType = file.mimeType || 'application/octet-stream';
-              const fileSize = file.size || 0;
+      const file = result.assets[0];
+      const fileName = file.name || 'uploaded_document';
+      const mimeType = file.mimeType || 'application/octet-stream';
+      const fileSize = file.size || 0;
 
-              await uploadDoc(fileName, 'Other', {
-                name: fileName,
-                blob: file.uri,
-                size: fileSize,
-                mimeType: mimeType,
-              });
+      await uploadDoc(fileName, 'Other', {
+        name: fileName,
+        blob: file.uri,
+        size: fileSize,
+        mimeType: mimeType,
+      });
 
-              Alert.alert('Upload Successful', `"${fileName}" has been uploaded to Firebase Storage and saved in your Document Vault.`);
-            } catch (err: any) {
-              Alert.alert('Upload Error', err.message || 'Failed to pick or upload document.');
-            }
-          },
-        },
-      ]
-    );
+      Alert.alert('Upload Complete', `${fileName} saved safely in your encrypted vault.`);
+    } catch (err: any) {
+      Alert.alert('Upload Error', err.message || 'Failed to upload document.');
+    }
   };
 
   const handleOpenDoc = async (docItem: DocumentItem) => {

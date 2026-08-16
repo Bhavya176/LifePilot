@@ -1,163 +1,190 @@
-# LifePilot — Complete React Native & Firebase Personal Command Center
+# 🚀 LifePilot — All-in-One Life Command Center & Productivity Suite
 
-**LifePilot** is an all-in-one daily productivity and life assistant mobile application built with **React Native (Expo SDK 57)**, **TypeScript**, **Expo Router**, and **Firebase Modular SDK (v12)**. 
+<p align="center">
+  <img src="https://img.shields.io/badge/Expo-v57.0.0-000020?style=for-the-badge&logo=expo&logoColor=white" />
+  <img src="https://img.shields.io/badge/React%20Native-0.86.2-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/TypeScript-5.9.2-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/Firebase-v12.17.1-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" />
+  <img src="https://img.shields.io/badge/Cloudinary-100%25%20Free%20Tier-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
+</p>
 
-It provides daily task management, habit streak tracking, rich notes with attachments, expense categorization, personal goal tracking, document vaults, low-latency live presence status, and automated productivity insights — wrapped in a modern, fully responsive UI design.
+**LifePilot** is a production-grade personal productivity and life assistant mobile application built with **React Native**, **Expo SDK 57**, **Expo Router**, **Firebase Modular SDK (v12)**, and **Cloudinary Free Tier**.
 
----
-
-## 📱 Key Features
-
-* 🏠 **Home Dashboard**: Live overview of today's completed tasks, active habit streaks, today's spending, active goals, live status badge, and quick action shortcuts.
-* ✅ **Tasks Manager**: Organize daily todos by priority (`Low`, `Medium`, `High`) and category (`Work`, `Personal`, `Health`, `Finance`, `Learning`, `Other`). Supports due dates, reminders, tap-to-edit, and filter views.
-* 🔥 **Habit Tracker**: Build daily discipline with automatic streak calculations (`currentStreak`, `bestStreak`), today's completion percentage, and interactive checkmarks.
-* 📝 **Personal Notes**: Clean notes system with live keyword search, pin/unpin toggles, and photo/document file attachments.
-* 💳 **Expense Tracker**: Track daily spending with category breakdowns (`Food`, `Transport`, `Shopping`, `Bills`, `Entertainment`, `Other`) and dynamic month/week/today spending totals.
-* 🎯 **Personal Goals**: Track long-term milestones with custom target values, progress increments, and visual progress bars.
-* 📂 **Document Vault**: Store receipts, ID proofs, certificates, and contracts securely in Firebase Storage / Cloudinary.
-* 🟢 **Live Productivity Status**: Real-time presence indicator (`Working`, `Break`, `Completed`, `Offline`) powered by Firebase Realtime Database.
-* 📊 **Productivity Intelligence**: Daily weighted productivity score (0–100%) and contextual insights calculated from your actual activities.
-* 🔔 **Notification Center**: Push reminder alerts, FCM token status, and configurable notification categories.
-* ⚙️ **Settings & Customization**: Light/Dark theme switch, Firebase connection diagnostics, Remote Config flags, Crashlytics test error trigger, and secure sign out.
+It merges task management, habit streak tracking, rich notes with attachments, modern Fintech expense tracking with category budgets, personal goal milestones, encrypted document vaults, Pomodoro focus timers, live co-working rooms, and real-time community chat — engineered with an Apple/Notion-level responsive design system and 100% Free-Tier cloud infrastructure.
 
 ---
 
-## 📐 Responsive Design System
+## ✨ Key Features & Capabilities
 
-LifePilot is built with a responsive scaling utility (`src/utils/responsive.ts`) authored for `390 × 844` (iPhone 14 / Pixel 7) that scales proportionally across any mobile screen, tablet, or orientation:
+### 🎮 1. Unified Dashboard & XP Gamification Engine
+- **Unified Overview Card**: Merges daily stats (Tasks, Habits, Spending, Goals) with your current Explorer XP level tier.
+- **Action-based XP Rewards**: Gain XP for completing tasks (+10 XP), streaks (+50 XP), logging expenses (+5 XP), and finishing goals (+100 XP).
+- **Celebration Modals**: Full-screen level-up overlays celebrating your productivity milestones.
 
-* `s(size)`: Horizontal scaling for widths, horizontal padding, and margins.
-* `vs(size)`: Vertical scaling for heights, vertical padding, and sheet modals.
-* `ms(size, factor)`: Moderate scaling for border radii, icon wrappers, and badges.
-* `mvs(size, factor)`: Moderate vertical scaling for responsive heights.
-* `fs(size)`: Font scaling with upper and lower bound protection for legibility.
-* `wp(percent)` / `hp(percent)`: Percentage-based screen dimension helpers.
-* `useResponsive()`: Reactive React hook providing dynamic screen metrics on screen rotation or window resize.
+### 🍅 2. Pomodoro Focus Timer & 👥 Live Focus Rooms
+- **Circular Pomodoro Timer**: 25m Focus / 5m Short Break / 15m Long Break with circular SVG progress animation, sound feedback, and +20 XP bonuses.
+- **Live Co-Working Focus Room**: Join real-time study/work sessions with other users powered by low-latency **Firebase Realtime Database**.
+- **Real-Time Community Chat**: Live typing indicators, message reactions (👍, ❤️, 🔥, 🚀), and instant message streaming.
+
+### 💳 3. Modern Fintech Expense Tracker & Donut Analytics
+- **Fintech Spending Card**: Dynamic month-to-date total, Today's spending, and 7-day trailing total.
+- **SVG Donut Breakdown**: Dynamic category distribution with high-contrast color pills and percentages.
+- **Monthly Category Budgets**: Set spending limits per category with 80% warning and 100% threshold alert notifications.
+- **Export Statements**: One-tap export to formatted **PDF Statements** and **CSV Spreadsheets**.
+
+### 📅 4. Interactive Monthly Calendar & Global Search
+- **Monthly Calendar Matrix**: Month-at-a-glance view with color-coded badges for due tasks, logged expenses, and active habit streaks.
+- **Unified Global Search**: Lightning-fast keyword search across Tasks, Notes, Habits, Expenses, and Goals simultaneously.
+
+### 📝 5. Rich Notes & 📸 Photo Attachments
+- Markdown-style rich notes with keyword search, pin/unpin toggling, and fast photo/document attachments powered by **Cloudinary Free Tier**.
+
+### 🔐 6. Encrypted Document Vault with Biometrics
+- Store sensitive receipts, ID cards, certificates, and contracts with **Face ID / Fingerprint App Lock protection**.
+
+### 📢 7. Dynamic Banners & Daily Inspiration
+- Over-the-air broadcast announcements and daily motivational quotes driven remotely via **Firebase Remote Config**.
+
+### 🔔 8. Intelligent Notification Center
+- **🌅 Morning Briefing (8:00 AM)**: Daily scheduled task overview.
+- **🌙 Night Recap (9:00 PM)**: Summary of completed habits and total money spent.
+- **🎯 Goal Milestones**: Instant celebration alerts when reaching 50% and 100% of target values.
 
 ---
 
-## 🏗️ Architecture & Project Structure
+## ⚡ 100% Free-Tier Cloud Architecture
+
+LifePilot is architected to run **100% FREE on the Firebase Spark Plan and Cloudinary Free Tier** without needing a credit card or paid Blaze billing:
+
+| Service | Technology | Cost / Tier |
+|---|---|---|
+| **User Authentication** | Firebase Auth (Email/Pass, Reset, Verification) | 100% Free (Spark) |
+| **NoSQL Database** | Cloud Firestore with Persistent Local Cache | 100% Free (Spark) |
+| **Realtime Sync** | Firebase Realtime Database (Presence & Chat) | 100% Free (Spark) |
+| **Media & File Storage** | Cloudinary REST Upload API | 100% Free (Forever) |
+| **Remote Feature Flags** | Firebase Remote Config | 100% Free (Spark) |
+| **Productivity Telemetry** | Google Analytics for Firebase | 100% Free (Spark) |
+| **Crash Diagnostics** | Firebase Crashlytics & Error Boundary | 100% Free (Spark) |
+| **API Abuse Protection** | Firebase App Check (DeviceCheck / Play Integrity) | 100% Free (Spark) |
+| **Push Notifications** | Expo Notifications & Local Alert Schedulers | 100% Free |
+
+---
+
+## 📐 Responsive UI Design System
+
+LifePilot features a responsive scaling engine (`src/utils/responsive.ts`) calibrated for `390 × 844` baseline (iPhone 14 / Pixel 7) that scales fluidly across all iOS and Android display sizes:
+
+- `s(size)`: Horizontal scaling for widths, margins, and horizontal padding.
+- `vs(size)`: Vertical scaling for heights, bottom sheets, and vertical spacing.
+- `ms(size, factor)`: Moderate scaling for border radii, icon chips, and circular badges.
+- `fs(size)`: Dynamic typography scaling with legibility constraints.
+- `useTheme()`: Instant OLED Dark Mode and Clean Daylight Light Mode switching.
+
+---
+
+## 📂 Project Structure
 
 ```text
-FirebaseLearningApp/
-├── app.json                       # Expo configuration & native plugins
-├── package.json                   # Dependencies
+LifePilot/
+├── app.json                       # Expo SDK 57 app manifest & plugins
+├── package.json                   # Dependencies & build scripts
 ├── tsconfig.json                  # TypeScript compiler settings
-├── firestore.rules                # Cloud Firestore security rules
-├── storage.rules                  # Firebase Storage security rules
+├── firestore.rules                # Cloud Firestore user isolation rules
 ├── database.rules.json            # Realtime Database security rules
-├── firebase.json                  # Firebase CLI configuration & emulator setup
-├── .env.example                   # Environment variable template
-├── README.md                      # Comprehensive documentation
-├── functions/                     # Firebase Cloud Functions codebase
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── src/
-│       ├── index.ts               # Cloud Functions entry point
-│       ├── dailySummary.ts        # Daily productivity calculator
-│       ├── weeklySummary.ts       # Weekly aggregator
-│       ├── reminderProcessor.ts   # Cron background reminder worker
-│       └── dataValidation.ts      # Server-side validation rules
-└── src/
-    ├── firebase/                  # Modular Firebase service layer
-    │   ├── config.ts              # Firebase initialization & AsyncStorage auth
-    │   ├── auth.ts                # Authentication helpers & state listener
-    │   ├── firestore.ts           # Firestore collection wrappers
-    │   ├── storage.ts             # File upload/delete storage utilities
-    │   ├── messaging.ts           # Push notification registration & scheduling
-    │   ├── analytics.ts           # Privacy-conscious Analytics abstraction
-    │   ├── crashlytics.ts         # Crash reporting & non-fatal error logging
-    │   ├── remoteConfig.ts        # Over-the-air feature flags
-    │   ├── appCheck.ts            # App Check resource protection
-    │   └── realtimeDatabase.ts    # Live presence (Realtime DB)
-    ├── services/                  # Business logic services
-    ├── components/                # Reusable UI components & Error Boundary
-    │   └── ui/
-    │       ├── Button.tsx         # Responsive button with shadow & feedback
-    │       ├── Input.tsx          # Responsive input with multiline & focus state
-    │       ├── Card.tsx           # Responsive card with elevation
-    │       ├── Badge.tsx          # Translucent pill badges
-    │       ├── Header.tsx         # Responsive header with circular back button
-    │       ├── EmptyState.tsx     # Responsive empty state illustration
-    │       └── ProgressBar.tsx    # Responsive animated progress bar
-    ├── hooks/                     # Custom React Hooks
-    │   ├── useAuth.ts
-    │   ├── useTasks.ts
-    │   ├── useHabits.ts
-    │   ├── useNotes.ts
-    │   ├── useExpenses.ts
-    │   ├── useGoals.ts
-    │   ├── useDocuments.ts
-    │   ├── useNotifications.ts
-    │   ├── useLiveStatus.ts
-    │   └── useRemoteConfig.ts
-    ├── types/                     # TypeScript domain interfaces
-    ├── utils/                     # Responsive utility & formatters
-    │   ├── responsive.ts          # Core responsive scaling engine
-    │   ├── dateUtils.ts
-    │   └── formatters.ts
-    ├── constants/                 # Theme & categories
-    │   ├── theme.ts
-    │   └── categories.ts
-    └── app/                       # Expo Router application screens
-        ├── _layout.tsx            # Root layout (Theme, Auth, ErrorBoundary, AppCheck)
-        ├── (auth)/                # Auth routes (Welcome, Login, Register, Reset, Verify)
-        ├── (tabs)/                # Tab navigator (Home, Tasks, Habits, Notes, Expenses)
-        └── screens/               # Modal & detail screens (Goals, Documents, Notifications, Settings, etc.)
+├── firebase.json                  # Firebase CLI configuration
+├── .env                           # Active environment keys
+├── src/
+│   ├── app/                       # Expo Router file-based navigation
+│   │   ├── _layout.tsx            # Root layout with theme, auth & error boundary
+│   │   ├── (auth)/                # Auth flows (Welcome, Login, Register, Forgot)
+│   │   ├── (tabs)/                # Bottom navigation tabs
+│   │   │   ├── index.tsx          # Home Command Center
+│   │   │   ├── tasks.tsx          # Task Manager
+│   │   │   ├── habits.tsx         # Habit Streak Tracker
+│   │   │   ├── notes.tsx          # Notes & Attachments
+│   │   │   └── expenses.tsx       # Fintech Expense Tracker & Budgets
+│   │   └── screens/               # Modal and detail screens
+│   │       ├── pomodoro.tsx       # Pomodoro Focus Timer
+│   │       ├── focus-room.tsx     # Live Co-Working Focus Room
+│   │       ├── community-chat.tsx # Real-Time Community Chat
+│   │       ├── calendar.tsx       # Interactive Monthly Calendar
+│   │       ├── search.tsx         # Universal Global Search
+│   │       ├── analytics.tsx      # Productivity Analytics & Score
+│   │       ├── documents.tsx      # Encrypted Document Vault
+│   │       ├── goals.tsx          # Goal Milestones
+│   │       ├── notifications.tsx  # Push Notification Center
+│   │       ├── settings.tsx       # Production Settings Center
+│   │       └── profile.tsx        # User Profile Management
+│   ├── firebase/                  # Modular Firebase & Cloudinary Services
+│   │   ├── config.ts              # Firebase Client initialization
+│   │   ├── auth.ts                # Authentication helpers & friendly errors
+│   │   ├── firestore.ts           # Firestore collection wrappers & cache
+│   │   ├── storage.ts             # Cloudinary 100% Free Upload Engine
+│   │   ├── realtimeDatabase.ts    # Realtime presence, chat & focus rooms
+│   │   ├── messaging.ts           # Push notifications & briefings
+│   │   ├── remoteConfig.ts        # Dynamic announcements & quotes
+│   │   ├── analytics.ts           # Privacy-focused analytics
+│   │   ├── crashlytics.ts         # Crash reporting & diagnostics
+│   │   └── appCheck.ts            # Resource attestation
+│   ├── components/ui/             # Reusable UI component library
+│   │   ├── UnifiedOverviewCard.tsx
+│   │   ├── ExpensePieChart.tsx
+│   │   ├── BudgetCard.tsx
+│   │   ├── LevelUpOverlay.tsx
+│   │   ├── DynamicAnnouncementBanner.tsx
+│   │   ├── DynamicDailyQuoteCard.tsx
+│   │   ├── QuickAddFAB.tsx
+│   │   ├── Header.tsx
+│   │   ├── Card.tsx
+│   │   ├── Button.tsx
+│   │   └── Badge.tsx
+│   ├── hooks/                     # Custom React Hooks
+│   ├── services/                  # Business logic (Gamification, Export, etc.)
+│   ├── context/                   # Context Providers (Auth, Theme, Network, Security)
+│   ├── utils/                     # Responsive metrics & date formatters
+│   └── constants/                 # Curated color palettes & theme tokens
 ```
 
 ---
 
-## ⚡ Firebase Services Integrated
-
-1. **Firebase Authentication**: Email/Password login, registration, email verification, password reset, and session persistence.
-2. **Cloud Firestore**: Real-time NoSQL database storing tasks, habits, notes, expenses, goals, and daily metrics scoped to `users/{uid}/*`.
-3. **Firebase Storage**: Cloud binary storage for uploaded receipts, certificates, and profile pictures.
-4. **Firebase Realtime Database**: Low-latency WebSocket presence sync for live session status (`Working`, `Break`, `Completed`, `Offline`).
-5. **Firebase Cloud Messaging (FCM)**: Push reminder alerts and local notification scheduling.
-6. **Firebase Analytics**: User activity and productivity telemetry tracking.
-7. **Firebase Crashlytics**: Crash reporting, breadcrumbs, and error boundary recovery.
-8. **Firebase Remote Config**: Over-the-air feature flags (`maintenance_mode`, `max_free_documents`, `daily_quote_enabled`).
-9. **Firebase App Check**: App attestation and security protection.
-10. **Firebase Cloud Functions**: Serverless background score aggregation and scheduled reminders.
-
----
-
-## 🚀 Quickstart & Setup
+## 🚀 Getting Started
 
 ### 1. Prerequisites
-* **Node.js**: v18.0.0 or higher
-* **Expo CLI**: `npm install -g expo-cli`
-* **Firebase CLI**: `npm install -g firebase-tools`
+- **Node.js**: v18.0.0 or higher
+- **Expo Go** app on your physical iOS/Android device or Xcode/Android Studio simulator.
 
 ### 2. Installation
 ```bash
-# Install mobile dependencies
+# Clone repository
+git clone https://github.com/Bhavya176/LifePilot.git
+cd LifePilot
+
+# Install dependencies
 npm install
-
-# Install Cloud Functions dependencies
-cd functions && npm install && cd ..
 ```
 
-### 3. Environment Variables
-Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-Fill in your Firebase credentials in `.env`:
+### 3. Configure Environment Variables
+Create a `.env` file in the root directory:
 ```env
-EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
+# Firebase Project Keys (Spark Plan - 100% Free)
+EXPO_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
 EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 EXPO_PUBLIC_FIREBASE_DATABASE_URL=https://your_project-default-rtdb.firebaseio.com
 EXPO_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
 EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
+EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+# Cloudinary Keys (100% Free Tier - No Credit Card Needed)
+EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 ```
 
-### 4. Running the App
+### 4. Run the Application
 ```bash
-# Run TypeScript compilation check
+# Run TypeScript type-check
 npx tsc --noEmit
 
 # Start Expo Development Server
@@ -166,5 +193,5 @@ npx expo start
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License — created by Bhavya as a complete, modern React Native & Firebase productivity application.
+## 📜 License
+This project is open-source and licensed under the **MIT License** — built with ❤️ by **Bhavya**.

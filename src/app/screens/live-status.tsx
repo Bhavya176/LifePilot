@@ -32,8 +32,8 @@ export default function LiveStatusScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <Header
-        title="Live Productivity Status"
-        subtitle="Low-latency real-time presence (Firebase Realtime DB)"
+        title="Live Status"
+        subtitle="Broadcast your focus state to the community"
         showBack
         isDarkMode={isDarkMode}
       />
