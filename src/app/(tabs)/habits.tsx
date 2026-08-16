@@ -24,6 +24,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useHabits } from '../../hooks/useHabits';
 import { getTodayString } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { HabitHeatmap } from '../../components/ui/HabitHeatmap';
 import { Habit } from '../../types/habit';
 
 export default function HabitsScreen() {
@@ -128,6 +129,9 @@ export default function HabitsScreen() {
             </View>
           </View>
         </Card>
+
+        {/* Habit Consistency Heatmap (GitHub Style) */}
+        <HabitHeatmap habits={habits} isDarkMode={isDarkMode} />
 
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
           Daily Habits ({habits.length})

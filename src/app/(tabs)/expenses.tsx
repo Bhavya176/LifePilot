@@ -20,25 +20,41 @@ import { Header } from '../../components/ui/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ExpensePieChart } from '../../components/ui/ExpensePieChart';
+import { BudgetCard } from '../../components/ui/BudgetCard';
 import { EXPENSE_CATEGORIES } from '../../constants/categories';
 import { formatCurrency } from '../../utils/formatters';
 import { getTodayString } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
 import { useExpenses } from '../../hooks/useExpenses';
+import { useBudgets } from '../../hooks/useBudgets';
+import { exportService } from '../../services/exportService';
+import { useAuthContext } from '../../context/AuthContext';
 import { Expense, ExpenseCategory } from '../../types/expense';
 
 export default function ExpensesScreen() {
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const { expenses, loading, addExpense, deleteExpense } = useExpenses();
+  const { budgets, saveBudget, checkAlert } = useBudgets();
 
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory | 'all'>('all');
   const [modalVisible, setModalVisible] = useState(false);
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+
+  // Expense form state
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('Food');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(getTodayString());
   const [submitting, setSubmitting] = useState(false);
+
+  // Budget form state
+  const [budgetCat, setBudgetCat] = useState<ExpenseCategory>('Food');
+  const [budgetLimitInput, setBudgetLimitInput] = useState('');
+  const [savingBudget, setSavingBudget] = useState(false);
 
   // Compute live spending stats
   const todayStr = getTodayString();
@@ -61,7 +77,7 @@ export default function ExpensesScreen() {
 
   const filteredExpenses = expenses.filter((e) => {
     if (selectedCategory === 'all') return true;
-    return e.category === selectedCategory;
+    return (e.category || '').toLowerCase() === selectedCategory.toLowerCase();
   });
 
   const handleCreateExpense = async () => {
@@ -83,6 +99,16 @@ export default function ExpensesScreen() {
         description: description.trim(),
         date: date || todayStr,
       });
+
+      // Check category budget alert
+      const targetBudget = budgets.find((b) => (b.category || '').toLowerCase() === category.toLowerCase());
+      if (targetBudget && targetBudget.monthlyLimit > 0) {
+        const catMonthSpent = expenses
+          .filter((e) => e.date?.startsWith(currentMonthStr) && (e.category || '').toLowerCase() === category.toLowerCase())
+          .reduce((sum, e) => sum + (Number(e.amount) || 0), 0) + numAmount;
+        await checkAlert(category, catMonthSpent, targetBudget.monthlyLimit);
+      }
+
       setAmount('');
       setDescription('');
       setDate(getTodayString());
@@ -92,6 +118,49 @@ export default function ExpensesScreen() {
       Alert.alert('Error', err.message || 'Failed to save expense in Firestore.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleOpenBudgetModal = (catToEdit?: ExpenseCategory) => {
+    const targetCat = catToEdit || 'Food';
+    setBudgetCat(targetCat);
+    const existing = budgets.find((b) => (b.category || '').toLowerCase() === targetCat.toLowerCase());
+    setBudgetLimitInput(existing ? String(existing.monthlyLimit) : '');
+    setBudgetModalVisible(true);
+  };
+
+  const handleSaveBudgetLimit = async () => {
+    const limitNum = parseFloat(budgetLimitInput);
+    if (isNaN(limitNum) || limitNum < 0) {
+      Alert.alert('Validation Error', 'Please enter a valid monthly budget limit.');
+      return;
+    }
+
+    setSavingBudget(true);
+    try {
+      await saveBudget(budgetCat, limitNum);
+      setBudgetModalVisible(false);
+      Alert.alert('Budget Saved', `Monthly limit of ${formatCurrency(limitNum)} set for ${budgetCat}.`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to save budget limit.');
+    } finally {
+      setSavingBudget(false);
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      await exportService.exportExpensesToPDF(expenses, user?.name || 'LifePilot User');
+    } catch (err: any) {
+      Alert.alert('Export Error', err.message || 'Failed to export PDF.');
+    }
+  };
+
+  const handleExportCSV = async () => {
+    try {
+      await exportService.exportExpensesToCSV(expenses);
+    } catch (err: any) {
+      Alert.alert('Export Error', err.message || 'Failed to export CSV.');
     }
   };
 
@@ -133,13 +202,25 @@ export default function ExpensesScreen() {
         subtitle="Track daily spending & categories"
         isDarkMode={isDarkMode}
         rightAction={
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: theme.primary }]}
-            onPress={() => setModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[
+                styles.addBtn,
+                { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', marginRight: s(SPACING.xs) },
+              ]}
+              onPress={() => setExportModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="download-outline" size={18} color={theme.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => setModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         }
       />
 
@@ -172,6 +253,17 @@ export default function ExpensesScreen() {
             </View>
           </View>
         </Card>
+
+        {/* Visual Category Distribution Pie Chart */}
+        <ExpensePieChart expenses={expenses} isDarkMode={isDarkMode} />
+
+        {/* Category Budget Limits & Tracking */}
+        <BudgetCard
+          budgets={budgets}
+          expenses={expenses}
+          onOpenSetBudget={handleOpenBudgetModal}
+          isDarkMode={isDarkMode}
+        />
 
         {/* Category Filters */}
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Filter by Category</Text>
@@ -434,6 +526,130 @@ export default function ExpensesScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* Set Category Budget Modal */}
+      <Modal visible={budgetModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={[styles.modalContainer, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.handleWrapper}>
+              <View style={[styles.modalHandle, { backgroundColor: theme.border }]} />
+            </View>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+                Set Category Budget
+              </Text>
+              <TouchableOpacity onPress={() => setBudgetModalVisible(false)}>
+                <Ionicons name="close-circle-outline" size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.categoryLabel, { color: theme.textSecondary }]}>Select Category</Text>
+            <View style={styles.categoryGrid}>
+              {EXPENSE_CATEGORIES.map((cat) => {
+                const isSelected = budgetCat === cat.value;
+                return (
+                  <TouchableOpacity
+                    key={cat.value}
+                    style={[
+                      styles.categoryPickerPill,
+                      {
+                        backgroundColor: isSelected
+                          ? theme.primary
+                          : isDarkMode
+                          ? '#1E293B'
+                          : '#F1F5F9',
+                      },
+                    ]}
+                    onPress={() => setBudgetCat(cat.value as ExpenseCategory)}
+                  >
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={16}
+                      color={isSelected ? '#FFFFFF' : cat.color}
+                    />
+                    <Text
+                      style={[
+                        styles.catPickerText,
+                        { color: isSelected ? '#FFFFFF' : theme.textPrimary },
+                      ]}
+                    >
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Input
+              label="Monthly Limit ($)"
+              placeholder="e.g. 500"
+              keyboardType="numeric"
+              value={budgetLimitInput}
+              onChangeText={setBudgetLimitInput}
+              isDarkMode={isDarkMode}
+            />
+
+            <View style={styles.modalActions}>
+              <Button
+                title="Cancel"
+                variant="secondary"
+                onPress={() => setBudgetModalVisible(false)}
+                isDarkMode={isDarkMode}
+                style={{ flex: 1, marginRight: s(SPACING.sm) }}
+              />
+              <Button
+                title="Save Budget"
+                onPress={handleSaveBudgetLimit}
+                loading={savingBudget}
+                isDarkMode={isDarkMode}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Export Statement Modal */}
+      <Modal visible={exportModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlayCenter}>
+          <View style={[styles.centerModalBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: theme.textPrimary }]}>
+                Export Expense Report
+              </Text>
+              <TouchableOpacity onPress={() => setExportModalVisible(false)}>
+                <Ionicons name="close-circle-outline" size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: fs(13), color: theme.textSecondary, marginBottom: vs(SPACING.md), lineHeight: fs(18) }}>
+              Generate a printable report of all {expenses.length} recorded transactions:
+            </Text>
+
+            <Button
+              title="📄 Export PDF Statement"
+              onPress={() => {
+                setExportModalVisible(false);
+                handleExportPDF();
+              }}
+              isDarkMode={isDarkMode}
+              style={{ marginBottom: vs(SPACING.sm) }}
+            />
+
+            <Button
+              title="📊 Export CSV (Excel) Spreadsheet"
+              variant="outline"
+              onPress={() => {
+                setExportModalVisible(false);
+                handleExportCSV();
+              }}
+              isDarkMode={isDarkMode}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -616,5 +832,16 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: 'row',
     marginTop: vs(SPACING.sm),
+  },
+  modalOverlayCenter: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: s(SPACING.lg),
+  },
+  centerModalBox: {
+    borderRadius: ms(24),
+    padding: s(SPACING.lg),
+    borderWidth: 1,
   },
 });

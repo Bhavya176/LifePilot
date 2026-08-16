@@ -18,6 +18,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Header } from '../../components/ui/Header';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useTasks } from '../../hooks/useTasks';
+import { exportService } from '../../services/exportService';
+import { useAuthContext } from '../../context/AuthContext';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 type FilterType = 'today' | 'upcoming' | 'completed' | 'high_priority';
@@ -25,6 +27,7 @@ type FilterType = 'today' | 'upcoming' | 'completed' | 'high_priority';
 export default function TasksScreen() {
   const router = useRouter();
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const [activeFilter, setActiveFilter] = useState<FilterType>('today');
   const { tasks, loading, toggleTask, deleteTask } = useTasks(activeFilter);
@@ -36,6 +39,14 @@ export default function TasksScreen() {
     { label: 'High Priority', value: 'high_priority' },
   ];
 
+  const handleExportTasks = async () => {
+    try {
+      await exportService.exportTasksToPDF(tasks, user?.name || 'LifePilot User');
+    } catch (err: any) {
+      Alert.alert('Export Error', err.message || 'Failed to export tasks.');
+    }
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <Header
@@ -43,12 +54,22 @@ export default function TasksScreen() {
         subtitle="Manage & prioritize your daily todos"
         isDarkMode={isDarkMode}
         rightAction={
-          <TouchableOpacity
-            style={[styles.addBtn, { backgroundColor: theme.primary }]}
-            onPress={() => router.push('/screens/task-detail')}
-          >
-            <Ionicons name="add" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', marginRight: s(SPACING.xs) }]}
+              onPress={handleExportTasks}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="document-text-outline" size={18} color={theme.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => router.push('/screens/task-detail')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         }
       />
 

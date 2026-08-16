@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { useNetwork } from '../../context/NetworkContext';
+import { useSecurity } from '../../context/SecurityContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Card } from '../../components/ui/Card';
 import { Header } from '../../components/ui/Header';
@@ -29,6 +30,7 @@ export default function SettingsScreen() {
   const { isDarkMode, toggleTheme } = useTheme();
   const { signOut } = useAuthContext();
   const { isOnline, isOfflineModeManual, toggleOfflineMode } = useNetwork();
+  const { isBiometricSupported, isBiometricEnabled, toggleBiometric } = useSecurity();
   const { config: remoteCfg } = useRemoteConfig();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const fbStatus = checkFirebaseStatus();
@@ -64,6 +66,33 @@ export default function SettingsScreen() {
               value={isDarkMode}
               onValueChange={toggleTheme}
               trackColor={{ false: '#94A3B8', true: theme.primary }}
+            />
+          </View>
+        </Card>
+
+        {/* Biometric App & Vault Lock */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+          Security & Privacy
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="finger-print-outline" size={22} color={theme.accent} />
+              <View style={{ marginLeft: s(SPACING.sm) }}>
+                <Text style={[styles.settingLabel, { color: theme.textPrimary, marginLeft: 0 }]}>
+                  Biometric App Lock
+                </Text>
+                <Text style={{ fontSize: fs(11), color: theme.textSecondary, marginTop: vs(2) }}>
+                  Face ID / Fingerprint protection for Document Vault
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={isBiometricEnabled}
+              onValueChange={() => {
+                toggleBiometric();
+              }}
+              trackColor={{ false: '#94A3B8', true: theme.accent }}
             />
           </View>
         </Card>

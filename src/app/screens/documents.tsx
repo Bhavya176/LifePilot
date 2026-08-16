@@ -23,11 +23,14 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { formatFileSize } from '../../utils/formatters';
 import { useDocuments } from '../../hooks/useDocuments';
 import { DocumentItem } from '../../types/document';
+import { useSecurity } from '../../context/SecurityContext';
+import { Button } from '../../components/ui/Button';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function DocumentsScreen() {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
+  const { isBiometricEnabled, isVaultLocked, unlockVault } = useSecurity();
   const [searchQuery, setSearchQuery] = useState('');
   const { documents, loading, uploadProgress, uploadDoc, deleteDoc } = useDocuments();
 
@@ -120,6 +123,50 @@ export default function DocumentsScreen() {
   const filteredDocs = documents.filter((d) =>
     d.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isBiometricEnabled && isVaultLocked) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+        <Header title="Document Vault" showBack isDarkMode={isDarkMode} />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: s(SPACING.xl) }}>
+          <View
+            style={{
+              width: ms(84),
+              height: ms(84),
+              borderRadius: ms(42),
+              backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: vs(SPACING.lg),
+            }}
+          >
+            <Ionicons name="finger-print-outline" size={ms(44)} color={theme.primary} />
+          </View>
+          <Text style={{ fontSize: fs(18), fontWeight: '800', color: theme.textPrimary, textAlign: 'center' }}>
+            Vault is Locked
+          </Text>
+          <Text
+            style={{
+              fontSize: fs(13),
+              color: theme.textSecondary,
+              textAlign: 'center',
+              marginTop: vs(6),
+              marginBottom: vs(SPACING.xl),
+              lineHeight: fs(18),
+            }}
+          >
+            Authenticate with Face ID, Touch ID, or Device Passcode to access your protected documents.
+          </Text>
+          <Button
+            title="Unlock with Biometrics"
+            onPress={unlockVault}
+            isDarkMode={isDarkMode}
+            style={{ width: '100%' }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
