@@ -1,24 +1,29 @@
 {
   "expo": {
-    "name": "FirebaseLearningApp",
-    "slug": "FirebaseLearningApp",
+    "name": "LifePilot",
+    "slug": "LifePilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "firebaselearningapp",
+    "scheme": "lifepilot",
     "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.bhavya.FirebaseLearningApp"
+      "bundleIdentifier": "com.bhavya.LifePilot",
+      "supportsTablet": false,
+      "jsEngine": "hermes"
     },
     "android": {
+      "package": "com.bhavya.LifePilot",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "jsEngine": "hermes"
     },
     "web": {
       "output": "static",
