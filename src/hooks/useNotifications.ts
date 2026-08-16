@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { notificationService } from '../services/notificationService';
 import { registerForPushNotificationsAsync, scheduleLocalReminder } from '../firebase/messaging';
+import { updateUserDoc } from '../firebase/firestore';
 import { AppNotification, NotificationType } from '../types/notification';
 
 export function useNotifications() {
@@ -18,8 +19,11 @@ export function useNotifications() {
     }
 
     // Register push notification token on login
-    registerForPushNotificationsAsync(user.uid).then((token) => {
-      if (token) setFcmToken(token);
+    registerForPushNotificationsAsync(user.uid).then(async (token) => {
+      if (token) {
+        setFcmToken(token);
+        await updateUserDoc(user.uid, { fcmToken: token }).catch(() => null);
+      }
     });
 
     setLoading(true);

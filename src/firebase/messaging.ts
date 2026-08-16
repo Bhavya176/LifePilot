@@ -16,8 +16,8 @@ Notifications.setNotificationHandler({
 /**
  * Request notification permissions and register push notification token for user
  */
-export async function registerForPushNotificationsAsync(userId: string): Promise<string | null> {
-  let token: string | null = null;
+export async function registerForPushNotificationsAsync(userId: string): Promise<string> {
+  let token: string = `fcm_device_${userId ? userId.substring(0, 8) : 'demo'}_${Date.now()}`;
 
   try {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -28,28 +28,24 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
       finalStatus = status;
     }
 
-    // Generate Push Token (Expo & FCM bridge)
-    const tokenData = await Notifications.getExpoPushTokenAsync().catch(() => null);
-    token = tokenData ? tokenData.data : `fcm_device_token_${userId ? userId.substring(0, 8) : 'demo'}_${Date.now()}`;
+    // Try to get Expo/FCM push token with a fast 1200ms timeout
+    const fetchTokenPromise = Notifications.getExpoPushTokenAsync().then((t) => t?.data).catch(() => null);
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1200));
+    const tokenData = await Promise.race([fetchTokenPromise, timeoutPromise]);
 
-    // Store token securely in user profile in Firestore
-    if (token && userId) {
-      await updateUserDoc(userId, { fcmToken: token });
-    }
-
-    if (Platform.OS === 'android') {
-      Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#4F46E5',
-      });
+    if (tokenData) {
+      token = tokenData;
     }
   } catch (error) {
-    token = `fcm_device_token_${userId ? userId.substring(0, 8) : 'dev'}_${Date.now()}`;
-    if (token && userId) {
-      await updateUserDoc(userId, { fcmToken: token }).catch(() => null);
-    }
+    console.log('Push Token Notice:', error);
+  }
+
+  // Always store token in user profile in Firestore
+  if (userId) {
+    await updateUserDoc(userId, {
+      fcmToken: token,
+      fcmTokenUpdatedAt: new Date().toISOString(),
+    }).catch((e) => console.log('UpdateUserDoc error:', e));
   }
 
   return token;

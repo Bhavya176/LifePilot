@@ -10,13 +10,19 @@ import {
 } from 'firebase/auth';
 import { auth } from './config';
 import { UserProfile } from '../types/user';
+import { updateUserDoc } from './firestore';
 
 export { auth };
 
 export async function loginUser(email: string, pass: string): Promise<UserProfile> {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, pass);
-    return formatAuthUser(cred.user);
+    const formatted = formatAuthUser(cred.user);
+    await updateUserDoc(formatted.uid, {
+      name: formatted.name,
+      email: formatted.email,
+    }).catch(() => null);
+    return formatted;
   } catch (error: any) {
     if (email === 'demo@lifepilot.app' || error.code === 'auth/configuration-not-found' || error.code === 'auth/invalid-api-key') {
       return {
@@ -38,13 +44,18 @@ export async function registerUser(email: string, pass: string, name: string): P
       await updateProfile(cred.user, { displayName: name });
       await sendEmailVerification(cred.user);
     }
-    return {
+    const formatted: UserProfile = {
       uid: cred.user.uid,
       name: name,
       email: cred.user.email || email,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
+    await updateUserDoc(formatted.uid, {
+      name: formatted.name,
+      email: formatted.email,
+    }).catch(() => null);
+    return formatted;
   } catch (error: any) {
     if (error.code === 'auth/configuration-not-found' || error.code === 'auth/invalid-api-key') {
       return {

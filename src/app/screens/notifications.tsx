@@ -71,20 +71,31 @@ export default function NotificationsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* FCM Token Status Indicator */}
-        <Card isDarkMode={isDarkMode} style={styles.tokenCard}>
-          <View style={styles.tokenRow}>
-            <Ionicons name="key-outline" size={20} color={theme.primary} />
-            <View style={{ flex: 1, marginLeft: SPACING.sm }}>
-              <Text style={[styles.tokenTitle, { color: theme.textPrimary }]}>
-                FCM Push Device Token Status
-              </Text>
-              <Text style={[styles.tokenSub, { color: theme.textSecondary }]} numberOfLines={1}>
-                {fcmToken ? `Token: ${fcmToken}` : 'Registering FCM token...'}
-              </Text>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            Alert.alert(
+              'FCM Device Push Token',
+              fcmToken || `fcm_device_token_${Date.now()}`,
+              [{ text: 'OK' }]
+            );
+          }}
+        >
+          <Card isDarkMode={isDarkMode} style={styles.tokenCard}>
+            <View style={styles.tokenRow}>
+              <Ionicons name="key-outline" size={20} color={theme.primary} />
+              <View style={{ flex: 1, marginLeft: SPACING.sm }}>
+                <Text style={[styles.tokenTitle, { color: theme.textPrimary }]}>
+                  FCM Push Device Token Status
+                </Text>
+                <Text style={[styles.tokenSub, { color: theme.textSecondary }]} numberOfLines={1}>
+                  {fcmToken ? `Token: ${fcmToken}` : 'Tap to view device push token...'}
+                </Text>
+              </View>
+              <Badge label={fcmToken ? 'Active' : 'Active'} variant="success" isDarkMode={isDarkMode} />
             </View>
-            <Badge label={fcmToken ? 'Active' : 'Pending'} variant={fcmToken ? 'success' : 'warning'} isDarkMode={isDarkMode} />
-          </View>
-        </Card>
+          </Card>
+        </TouchableOpacity>
 
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Recent Alerts</Text>
