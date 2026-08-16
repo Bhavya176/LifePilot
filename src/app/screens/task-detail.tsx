@@ -1,0 +1,278 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Switch,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
+import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { Header } from '../../components/ui/Header';
+import { Input } from '../../components/ui/Input';
+import { Button } from '../../components/ui/Button';
+import { TASK_CATEGORIES, TASK_PRIORITIES } from '../../constants/categories';
+import { TaskCategory, TaskPriority } from '../../types/task';
+import { useTasks } from '../../hooks/useTasks';
+import { getTodayString } from '../../utils/dateUtils';
+import { s, vs, ms, fs } from '../../utils/responsive';
+
+export default function TaskDetailScreen() {
+  const router = useRouter();
+  const params = useLocalSearchParams<{
+    id?: string;
+    title?: string;
+    description?: string;
+    dueDate?: string;
+    priority?: TaskPriority;
+    category?: TaskCategory;
+    reminder?: string;
+  }>();
+
+  const isEditing = Boolean(params.id);
+  const { isDarkMode } = useTheme();
+  const { addTask, updateTask, deleteTask } = useTasks();
+  const theme = isDarkMode ? COLORS.dark : COLORS.light;
+
+  const [title, setTitle] = useState(params.title || '');
+  const [description, setDescription] = useState(params.description || '');
+  const [dueDate, setDueDate] = useState(params.dueDate || getTodayString());
+  const [priority, setPriority] = useState<TaskPriority>(params.priority || 'medium');
+  const [category, setCategory] = useState<TaskCategory>(params.category || 'work');
+  const [reminder, setReminder] = useState(params.reminder !== 'false');
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!title.trim()) {
+      Alert.alert('Validation Error', 'Task title is required.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isEditing && params.id) {
+        await updateTask(params.id, {
+          title: title.trim(),
+          description: description.trim(),
+          dueDate: dueDate || getTodayString(),
+          priority,
+          category,
+          reminder,
+        });
+      } else {
+        await addTask({
+          title: title.trim(),
+          description: description.trim(),
+          dueDate: dueDate || getTodayString(),
+          priority,
+          category,
+          completed: false,
+          reminder,
+        });
+      }
+      router.back();
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to save task in Firestore.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!params.id) return;
+    Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteTask(params.id!);
+            router.back();
+          } catch (err: any) {
+            Alert.alert('Error', err.message || 'Failed to delete task.');
+          }
+        },
+      },
+    ]);
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
+      <Header title={isEditing ? 'Edit Task' : 'Add Task'} showBack isDarkMode={isDarkMode} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <Input
+            label="Title *"
+            placeholder="e.g., Review sprint backlog, Buy groceries"
+            value={title}
+            onChangeText={setTitle}
+            isDarkMode={isDarkMode}
+          />
+
+          <Input
+            label="Description"
+            placeholder="Add details, links or subtasks..."
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={3}
+            isDarkMode={isDarkMode}
+          />
+
+          <Input
+            label="Due Date (YYYY-MM-DD)"
+            placeholder={getTodayString()}
+            value={dueDate}
+            onChangeText={setDueDate}
+            isDarkMode={isDarkMode}
+            leftIcon={<Ionicons name="calendar-outline" size={20} color={theme.textMuted} />}
+          />
+
+          <Text style={[styles.label, { color: theme.textPrimary }]}>Priority</Text>
+          <View style={styles.chipRow}>
+            {TASK_PRIORITIES.map((p) => {
+              const isSelected = priority === p.value;
+              return (
+                <TouchableOpacity
+                  key={p.value}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected
+                        ? p.color
+                        : isDarkMode
+                        ? '#1E293B'
+                        : '#E2E8F0',
+                    },
+                  ]}
+                  onPress={() => setPriority(p.value)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                    ]}
+                  >
+                    {p.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={[styles.label, { color: theme.textPrimary, marginTop: SPACING.sm }]}>
+            Category
+          </Text>
+          <View style={styles.chipRow}>
+            {TASK_CATEGORIES.map((c) => {
+              const isSelected = category === c.value;
+              return (
+                <TouchableOpacity
+                  key={c.value}
+                  style={[
+                    styles.chip,
+                    {
+                      backgroundColor: isSelected
+                        ? theme.primary
+                        : isDarkMode
+                        ? '#1E293B'
+                        : '#E2E8F0',
+                    },
+                  ]}
+                  onPress={() => setCategory(c.value)}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      { color: isSelected ? '#FFFFFF' : theme.textSecondary },
+                    ]}
+                  >
+                    {c.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.reminderRow}>
+            <Text style={[styles.label, { color: theme.textPrimary, marginBottom: 0 }]}>
+              Enable Reminder Notification
+            </Text>
+            <Switch
+              value={reminder}
+              onValueChange={setReminder}
+              trackColor={{ false: '#94A3B8', true: theme.primary }}
+            />
+          </View>
+
+          <Button
+            title={isEditing ? 'Update Task' : 'Save Task'}
+            onPress={handleSave}
+            loading={saving}
+            isDarkMode={isDarkMode}
+            size="lg"
+            style={{ marginTop: SPACING.md }}
+          />
+
+          {isEditing && (
+            <Button
+              title="Delete Task"
+              variant="danger"
+              onPress={handleDelete}
+              isDarkMode={isDarkMode}
+              size="lg"
+              style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}
+            />
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: s(SPACING.md),
+    paddingBottom: vs(SPACING.xl),
+  },
+  label: {
+    fontSize: fs(14),
+    fontWeight: '600',
+    marginBottom: vs(SPACING.xs),
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: vs(SPACING.sm),
+  },
+  chip: {
+    paddingHorizontal: s(SPACING.md),
+    paddingVertical: vs(SPACING.xs + 2),
+    borderRadius: ms(RADIUS.full),
+    marginRight: s(SPACING.xs + 2),
+    marginBottom: vs(SPACING.xs),
+  },
+  chipText: {
+    fontSize: fs(13),
+    fontWeight: '600',
+  },
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: vs(SPACING.md),
+  },
+});

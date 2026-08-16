@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function checking if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function checking if authenticated user matches target userId path
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function validating non-empty string
+    function isNonEmptyString(field) {
+      return field is string && field.size() > 0;
+    }
+
+    // Rules for User document root: users/{userId}
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Tasks subcollection: users/{userId}/tasks/{taskId}
+      match /tasks/{taskId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isNonEmptyString(request.resource.data.title)
+          && request.resource.data.priority in ['low', 'medium', 'high']
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Habits subcollection: users/{userId}/habits/{habitId}
+      match /habits/{habitId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isNonEmptyString(request.resource.data.title)
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Notes subcollection: users/{userId}/notes/{noteId}
+      match /notes/{noteId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isNonEmptyString(request.resource.data.title)
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Expenses subcollection: users/{userId}/expenses/{expenseId}
+      match /expenses/{expenseId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.amount is number
+          && request.resource.data.amount >= 0
+          && isNonEmptyString(request.resource.data.description)
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Goals subcollection: users/{userId}/goals/{goalId}
+      match /goals/{goalId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isNonEmptyString(request.resource.data.title)
+          && request.resource.data.targetValue > 0
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Documents subcollection: users/{userId}/documents/{docId}
+      match /documents/{docId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isNonEmptyString(request.resource.data.title)
+          && request.resource.data.userId == request.auth.uid;
+      }
+
+      // Notifications subcollection: users/{userId}/notifications/{notifId}
+      match /notifications/{notifId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId);
+      }
+
+      // Daily Summaries subcollection: users/{userId}/dailySummaries/{dateStr}
+      match /dailySummaries/{dateStr} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+
+      // Weekly Summaries subcollection: users/{userId}/weeklySummaries/{weekStr}
+      match /weeklySummaries/{weekStr} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
+      }
+    }
+  }
+}

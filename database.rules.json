@@ -1,0 +1,11 @@
+{
+  "rules": {
+    "status": {
+      "$userId": {
+        ".read": "auth != null && auth.uid === $userId",
+        ".write": "auth != null && auth.uid === $userId",
+        ".validate": "newData.hasChildren(['status', 'lastUpdated'])"
+      }
+    }
+  }
+}
