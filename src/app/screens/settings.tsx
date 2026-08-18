@@ -24,6 +24,7 @@ import { Button } from '../../components/ui/Button';
 import { checkFirebaseStatus } from '../../firebase/config';
 import { useRemoteConfig } from '../../hooks/useRemoteConfig';
 import { CrashlyticsService } from '../../firebase/crashlytics';
+import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function SettingsScreen() {
@@ -103,10 +104,42 @@ export default function SettingsScreen() {
             </View>
             <Switch
               value={isDarkMode}
-              onValueChange={toggleTheme}
+              onValueChange={async () => {
+                await HapticsService.light();
+                toggleTheme();
+              }}
               trackColor={{ false: '#94A3B8', true: theme.primary }}
             />
           </View>
+        </Card>
+
+        {/* Expo & EAS Labs Suite */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.md) }]}>
+          Expo SDK & EAS Tools
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <TouchableOpacity
+            style={styles.linkRow}
+            onPress={async () => {
+              await HapticsService.medium();
+              router.push('/screens/expo-labs' as any);
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.iconBox, { backgroundColor: isDarkMode ? '#3B0764' : '#F3E8FF' }]}>
+              <Ionicons name="flask" size={18} color="#A855F7" />
+            </View>
+            <View style={{ flex: 1, marginLeft: s(SPACING.sm) }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(6) }}>
+                <Text style={[styles.settingLabel, { color: theme.textPrimary }]}>Expo & EAS Labs</Text>
+                <Badge label="New 🧪" variant="primary" isDarkMode={isDarkMode} />
+              </View>
+              <Text style={[styles.settingSub, { color: theme.textSecondary }]}>
+                Test OTA Updates, Haptics, Hardware Battery & KeyStore
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
+          </TouchableOpacity>
         </Card>
 
         {/* Security & Privacy */}

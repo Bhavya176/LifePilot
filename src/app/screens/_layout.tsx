@@ -26,6 +26,7 @@ export default function ScreensLayout() {
       <Stack.Screen name="search" />
       <Stack.Screen name="about" />
       <Stack.Screen name="privacy" />
+      <Stack.Screen name="expo-labs" />
     </Stack>
   );
 }

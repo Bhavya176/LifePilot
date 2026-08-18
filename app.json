@@ -12,7 +12,10 @@
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.bhavya.LifePilot",
       "supportsTablet": false,
-      "jsEngine": "hermes"
+      "jsEngine": "hermes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.bhavya.LifePilot",
@@ -29,6 +32,12 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/1145114b-2edc-4938-9757-8f5fa7ebe03b"
+    },
     "plugins": [
       "expo-router",
       [
@@ -39,11 +48,21 @@
           "imageWidth": 100
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "expo-secure-store",
+      "expo-updates",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1145114b-2edc-4938-9757-8f5fa7ebe03b"
+      }
+    },
+    "owner": "bhavya17"
   }
 }
