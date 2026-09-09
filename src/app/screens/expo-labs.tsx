@@ -23,6 +23,8 @@ import { Header } from '../../components/ui/Header';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
+import { AppUpdateModal } from '../../components/ui/AppUpdateModal';
+import { UpdateEvaluation, getDefaultStoreUrl, getCurrentAppVersion } from '../../utils/versionCheck';
 import { HapticsService } from '../../services/hapticsService';
 import { SecureStoreService } from '../../services/secureStoreService';
 import { LocalNotificationService } from '../../services/localNotificationService';
@@ -36,6 +38,7 @@ export default function ExpoLabsScreen() {
   // EAS & Updates State
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string>('Idle');
+  const [simulatedUpdate, setSimulatedUpdate] = useState<UpdateEvaluation | null>(null);
 
   // Battery & Device State
   const [batteryLevel, setBatteryLevel] = useState<number | null>(null);
@@ -305,6 +308,81 @@ export default function ExpoLabsScreen() {
             style={{ marginTop: vs(SPACING.sm) }}
           />
         </Card>
+
+        {/* SECTION 1.5: STORE IN-APP UPDATE & ROLLBACK ENFORCER */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+          📲 Store Update & Rollback Enforcer (Real-World)
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+            Firebase Remote Config allows instant cloud rollback or force update if an App Store/Play Store version has bugs:
+          </Text>
+
+          <View style={{ gap: vs(10), marginTop: vs(12) }}>
+            <Button
+              title="Test Soft Update (Update & Later Buttons)"
+              variant="outline"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="sparkles-outline" size={16} color={theme.primary} />}
+              onPress={async () => {
+                await HapticsService.medium();
+                setSimulatedUpdate({
+                  status: 'SOFT_UPDATE',
+                  currentVersion: getCurrentAppVersion(),
+                  latestVersion: '2.1.0',
+                  minimumVersion: '1.0.0',
+                  title: 'New Update Available 🚀',
+                  message: 'A brand-new version with performance boosts is available. You can update now or postpone.',
+                  storeUrl: getDefaultStoreUrl(),
+                });
+              }}
+            />
+
+            <Button
+              title="Test Critical Force Update (No Close Button)"
+              variant="danger"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="alert-circle-outline" size={16} color="#EF4444" />}
+              onPress={async () => {
+                await HapticsService.heavy();
+                setSimulatedUpdate({
+                  status: 'FORCE_UPDATE',
+                  currentVersion: getCurrentAppVersion(),
+                  latestVersion: '2.0.0',
+                  minimumVersion: '2.0.0',
+                  title: 'Critical Update Required',
+                  message: 'This version contains critical security patches. Continuing requires updating via Google Play / App Store.',
+                  storeUrl: getDefaultStoreUrl(),
+                });
+              }}
+            />
+
+            <Button
+              title="Test Emergency Maintenance Blocker"
+              variant="secondary"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="construct-outline" size={16} color={theme.textPrimary} />}
+              onPress={async () => {
+                await HapticsService.warning();
+                setSimulatedUpdate({
+                  status: 'MAINTENANCE',
+                  currentVersion: getCurrentAppVersion(),
+                  latestVersion: '1.0.0',
+                  minimumVersion: '1.0.0',
+                  title: 'Under Scheduled Maintenance',
+                  message: 'LifePilot cloud database is currently undergoing a live upgrade. Access is temporarily paused.',
+                  storeUrl: getDefaultStoreUrl(),
+                });
+              }}
+            />
+          </View>
+        </Card>
+
+        {/* Modal for Simulated Update Testing */}
+        <AppUpdateModal
+          simulatedEvaluation={simulatedUpdate}
+          onDismissSimulation={() => setSimulatedUpdate(null)}
+        />
 
         {/* SECTION 2: HAPTICS FEEDBACK */}
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>

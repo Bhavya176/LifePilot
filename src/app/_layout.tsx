@@ -8,6 +8,7 @@ import { NetworkProvider } from '../context/NetworkContext';
 import { SecurityProvider } from '../context/SecurityContext';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/ui/OfflineBanner';
+import { AppUpdateModal } from '../components/ui/AppUpdateModal';
 import { initAppCheck } from '../firebase/appCheck';
 import { initRemoteConfig } from '../firebase/remoteConfig';
 import { initSentry } from '../services/sentry';
@@ -32,6 +33,7 @@ function RootLayout() {
           <SecurityProvider>
             <AuthProvider>
               <OfflineBanner />
+              <AppUpdateModal />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
