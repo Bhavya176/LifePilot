@@ -65,7 +65,7 @@ LifePilot is architected to run **100% FREE on the Firebase Spark Plan and Cloud
 | **Media & File Storage** | Cloudinary REST Upload API | 100% Free (Forever) |
 | **Remote Feature Flags** | Firebase Remote Config | 100% Free (Spark) |
 | **Productivity Telemetry** | Google Analytics for Firebase | 100% Free (Spark) |
-| **Crash Diagnostics** | Firebase Crashlytics & Error Boundary | 100% Free (Spark) |
+| **Crash Diagnostics** | Sentry for React Native & Error Boundary | Free (5,000 events/mo) |
 | **API Abuse Protection** | Firebase App Check (DeviceCheck / Play Integrity) | 100% Free (Spark) |
 | **Push Notifications** | Expo Notifications & Local Alert Schedulers | 100% Free |
 
@@ -125,8 +125,9 @@ LifePilot/
 │   │   ├── messaging.ts           # Push notifications & briefings
 │   │   ├── remoteConfig.ts        # Dynamic announcements & quotes
 │   │   ├── analytics.ts           # Privacy-focused analytics
-│   │   ├── crashlytics.ts         # Crash reporting & diagnostics
 │   │   └── appCheck.ts            # Resource attestation
+│   ├── services/                  # External service integrations
+│   │   ├── sentry.ts              # Sentry real-time error tracking & diagnostics
 │   ├── components/ui/             # Reusable UI component library
 │   │   ├── UnifiedOverviewCard.tsx
 │   │   ├── ExpensePieChart.tsx

@@ -67,7 +67,8 @@
       "expo-secure-store",
       "expo-updates",
       "expo-notifications",
-      "expo-image"
+      "expo-image",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

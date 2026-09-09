@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Sentry from '@sentry/react-native';
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { NetworkProvider } from '../context/NetworkContext';
@@ -9,10 +10,14 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 import { OfflineBanner } from '../components/ui/OfflineBanner';
 import { initAppCheck } from '../firebase/appCheck';
 import { initRemoteConfig } from '../firebase/remoteConfig';
+import { initSentry } from '../services/sentry';
+
+// Initialize Sentry error reporting before mounting component tree
+initSentry();
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function RootLayout() {
+function RootLayout() {
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
     // Asynchronously initialize App Check and Remote Config
@@ -40,4 +45,6 @@ export default function RootLayout() {
     </ErrorBoundary>
   );
 }
+
+export default Sentry.wrap(RootLayout);
 

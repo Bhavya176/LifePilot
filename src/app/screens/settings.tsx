@@ -23,7 +23,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { checkFirebaseStatus } from '../../firebase/config';
 import { useRemoteConfig } from '../../hooks/useRemoteConfig';
-import { CrashlyticsService } from '../../firebase/crashlytics';
+import { SentryService } from '../../services/sentry';
 import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
@@ -358,19 +358,19 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.divider} />
             <View style={styles.configRow}>
-              <Text style={[styles.configKey, { color: theme.textSecondary }]}>Crashlytics Attestation:</Text>
+              <Text style={[styles.configKey, { color: theme.textSecondary }]}>Sentry Diagnostics:</Text>
               <Text style={[styles.configVal, { color: theme.success }]}>Online (Active)</Text>
             </View>
             <View style={styles.divider} />
             <TouchableOpacity
               style={styles.diagBtn}
               onPress={() => {
-                CrashlyticsService.log('system_health_check_performed');
-                Alert.alert('System Health Check', 'All 10 Firebase Cloud services are responding normally with 0 exceptions.');
+                SentryService.addBreadcrumb('Diagnostics check executed from Settings', 'ui.diagnostics');
+                SentryService.generateTestCrash();
               }}
             >
               <Ionicons name="pulse-outline" size={16} color={theme.primary} />
-              <Text style={[styles.diagBtnText, { color: theme.primary }]}>Run Cloud Health Check</Text>
+              <Text style={[styles.diagBtnText, { color: theme.primary }]}>Run Sentry Health Check</Text>
             </TouchableOpacity>
           </Card>
         )}

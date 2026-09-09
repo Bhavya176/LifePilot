@@ -3,7 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import { Button } from './ui/Button';
-import { CrashlyticsService } from '../firebase/crashlytics';
+import { SentryService } from '../services/sentry';
 
 interface Props {
   children: ReactNode;
@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     const stack = errorInfo.componentStack ? errorInfo.componentStack.substring(0, 100) : '';
-    CrashlyticsService.reportError(error, `ErrorBoundary (${stack})`);
+    SentryService.captureException(error, `ErrorBoundary (${stack})`);
   }
 
   private handleReset = () => {

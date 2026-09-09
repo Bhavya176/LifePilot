@@ -8,6 +8,7 @@ import {
   sendVerificationEmail,
   auth,
 } from '../firebase/auth';
+import { SentryService } from '../services/sentry';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -49,6 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Firebase Auth real-time listener for authentication state persistence
     const unsubscribe = subscribeToAuthChanges((currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        SentryService.setUser(currentUser.uid, currentUser.email);
+      } else {
+        SentryService.setUser(null);
+      }
       setLoading(false);
     });
 
@@ -62,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.warn('Logout error:', e);
     } finally {
       setUser(null);
+      SentryService.setUser(null);
     }
   };
 
