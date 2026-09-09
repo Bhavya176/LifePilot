@@ -44,7 +44,7 @@ export default function VerifyEmailScreen() {
           Verify Your Email
         </Text>
         <Text style={[styles.subheading, { color: theme.textSecondary }]}>
-          We've sent a verification email to{' '}
+          {"We've sent a verification email to "}
           <Text style={{ fontWeight: '700', color: theme.textPrimary }}>
             {user?.email || 'your email'}
           </Text>

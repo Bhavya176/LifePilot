@@ -7,19 +7,15 @@ import { getGamificationProfile, awardXP } from '../services/gamificationService
 
 export function useGoals() {
   const { user } = useAuth();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setGoals([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = goalService.subscribeUserGoals(activeUid, (fetchedGoals) => {
       setGoals(fetchedGoals);
       setLoading(false);

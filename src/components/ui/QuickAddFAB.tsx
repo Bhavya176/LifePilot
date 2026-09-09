@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -51,8 +51,8 @@ export const QuickAddFAB: React.FC = () => {
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const expandAnim = useRef(new Animated.Value(0)).current;
+  const [rotateAnim] = useState(() => new Animated.Value(0));
+  const [expandAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     Animated.parallel([

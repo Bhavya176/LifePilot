@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, Animated, TouchableOpacity } from 'react-native';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { s, vs, ms, fs } from '../../utils/responsive';
@@ -17,8 +17,8 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
   onDismiss,
   isDarkMode = false,
 }) => {
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
-  const opacityAnim = useRef(new Animated.Value(0)).current;
+  const [scaleAnim] = useState(() => new Animated.Value(0.5));
+  const [opacityAnim] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (visible) {
@@ -38,20 +38,21 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, opacityAnim, scaleAnim]);
 
   if (!visible) return null;
 
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
   return (
-    <Modal transparent animationType="fade" visible={visible} onRequestClose={onDismiss}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
         <Animated.View
           style={[
             styles.card,
             {
               backgroundColor: theme.card,
+              borderColor: theme.border,
               transform: [{ scale: scaleAnim }],
               opacity: opacityAnim,
             },
@@ -64,7 +65,7 @@ export const LevelUpOverlay: React.FC<LevelUpOverlayProps> = ({
             Level {level.level} — {level.title}
           </Text>
           <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-            You're making incredible progress! Keep up the momentum and unlock new achievements.
+            {"You're making incredible progress! Keep up the momentum and unlock new achievements."}
           </Text>
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: theme.primary }]}

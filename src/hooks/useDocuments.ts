@@ -6,20 +6,16 @@ import { auth } from '../firebase/auth';
 
 export function useDocuments() {
   const { user } = useAuth();
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [documents, setDocuments] = useState<DocumentItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (!activeUid) {
-      setDocuments([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = documentService.subscribeUserDocuments(activeUid, (fetchedDocs) => {
       setDocuments(fetchedDocs);
       setLoading(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -53,28 +53,13 @@ export default function PomodoroScreen() {
   const progress = timeLeft / activeConfig.duration;
   const strokeDashoffset = circumference * (1 - progress);
 
-  useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            handleTimerComplete();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
+  const switchMode = (newMode: PomodoroMode) => {
+    setIsRunning(false);
+    setMode(newMode);
+    setTimeLeft(MODE_CONFIG[newMode].duration);
+  };
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [isRunning, mode]);
-
-  const handleTimerComplete = async () => {
+  const handleTimerComplete = useCallback(async () => {
     setIsRunning(false);
     Vibration.vibrate([0, 500, 200, 500]);
 
@@ -108,13 +93,30 @@ export default function PomodoroScreen() {
         { text: 'OK', style: 'cancel' },
       ]);
     }
-  };
+  }, [mode, completedSessions, earnXP]);
 
-  const switchMode = (newMode: PomodoroMode) => {
-    setIsRunning(false);
-    setMode(newMode);
-    setTimeLeft(MODE_CONFIG[newMode].duration);
-  };
+  useEffect(() => {
+    if (isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setTimeout(() => {
+              handleTimerComplete();
+            }, 0);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRunning, handleTimerComplete]);
 
   const handleTogglePlay = () => {
     setIsRunning(!isRunning);
@@ -252,7 +254,7 @@ export default function PomodoroScreen() {
         {/* Sessions Counter Card */}
         <Card isDarkMode={isDarkMode} style={styles.statsCard}>
           <View style={styles.statsHeader}>
-            <Text style={[styles.statsTitle, { color: theme.textPrimary }]}>Today's Focus Streak</Text>
+            <Text style={[styles.statsTitle, { color: theme.textPrimary }]}>{"Today's Focus Streak"}</Text>
             <Badge label={`+${completedSessions * 20} XP Earned`} variant="success" isDarkMode={isDarkMode} />
           </View>
           <View style={styles.tomatoesRow}>

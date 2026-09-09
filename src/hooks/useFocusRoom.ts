@@ -15,7 +15,6 @@ export function useFocusRoom() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    setLoading(true);
     const unsubscribe = subscribeFocusUsers((users) => {
       setActiveUsers(users);
       if (user) {
@@ -31,7 +30,7 @@ export function useFocusRoom() {
     return () => {
       unsubscribe();
     };
-  }, [user?.uid]);
+  }, [user]);
 
   const joinSession = async (activity: string) => {
     if (!user) return;

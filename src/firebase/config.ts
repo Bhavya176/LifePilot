@@ -23,6 +23,12 @@ export const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-DEMO123456',
 };
 
+if (!__DEV__ && firebaseConfig.apiKey.includes('Demo')) {
+  console.warn(
+    '[LifePilot Config Warning] App is running in production with fallback demo credentials! Configure EXPO_PUBLIC_FIREBASE_* in EAS Secrets or Expo Dashboard.'
+  );
+}
+
 // Initialize or retrieve Firebase App singleton instance
 export const app: FirebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 

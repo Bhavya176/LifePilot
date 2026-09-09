@@ -123,7 +123,7 @@ export default function SummaryScreen() {
             {/* Score Card */}
             <Card isDarkMode={isDarkMode} style={styles.scoreCard}>
               <Text style={[styles.scoreLabel, { color: theme.textSecondary }]}>
-                Today's Productivity Score
+                {"Today's Productivity Score"}
               </Text>
               <Text
                 style={[
@@ -195,7 +195,7 @@ export default function SummaryScreen() {
 
             {/* Daily Breakdown Grid */}
             <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
-              Today's Key Performance Indicators
+              {"Today's Key Performance Indicators"}
             </Text>
             <Card isDarkMode={isDarkMode}>
               <View style={styles.metricRow}>

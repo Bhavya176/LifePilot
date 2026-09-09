@@ -3,6 +3,7 @@ import { UserProfile } from '../types/user';
 import {
   subscribeToAuthChanges,
   logoutUser,
+  deleteUserAccount,
   resetPassword,
   sendVerificationEmail,
   auth,
@@ -13,6 +14,7 @@ interface AuthContextType {
   loading: boolean;
   setUser: (user: UserProfile | null) => void;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   verifyEmail: () => Promise<void>;
 }
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   setUser: () => {},
   signOut: async () => {},
+  deleteAccount: async () => {},
   sendPasswordReset: async () => {},
   verifyEmail: async () => {},
 });
@@ -62,6 +65,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      await deleteUserAccount();
+    } finally {
+      setUser(null);
+    }
+  };
+
   const sendPasswordReset = async (email: string) => {
     await resetPassword(email);
   };
@@ -77,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         setUser,
         signOut,
+        deleteAccount,
         sendPasswordReset,
         verifyEmail,
       }}

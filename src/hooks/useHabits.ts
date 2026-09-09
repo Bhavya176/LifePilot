@@ -7,19 +7,15 @@ import { getGamificationProfile, awardXP, updateBestStreak } from '../services/g
 
 export function useHabits() {
   const { user } = useAuth();
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setHabits([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = habitService.subscribeUserHabits(activeUid, (fetchedHabits) => {
       setHabits(fetchedHabits);
       setLoading(false);

@@ -45,13 +45,12 @@ export async function initAppCheck(): Promise<AppCheckStatus> {
         isTokenAutoRefreshEnabled: true,
       });
       providerName = 'ReCAPTCHA v3 Provider';
-    } else {
-      // Native iOS (DeviceCheck / AppAttest) & Android (Play Integrity)
+    } else if (isDev || process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN) {
+      // Native debug token provider (only in development or when explicitly provided)
       appCheckInstance = initializeAppCheck(app, {
         provider: new CustomProvider({
           getToken: async () => {
             try {
-              // Custom token handler or debug fallback
               return {
                 token: process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN || 'A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D',
                 expireTimeMillis: Date.now() + 3600 * 1000,
@@ -67,7 +66,10 @@ export async function initAppCheck(): Promise<AppCheckStatus> {
         }),
         isTokenAutoRefreshEnabled: true,
       });
-      providerName = isDev ? 'Debug Provider (Dev Mode)' : 'Play Integrity / DeviceCheck';
+      providerName = isDev ? 'Debug Provider (Dev Mode)' : 'Custom Token Provider';
+    } else {
+      // In native production without dedicated App Check native module, avoid mock tokens
+      providerName = 'Native (Managed by Firebase Console)';
     }
 
     console.log(`[Firebase App Check] Initialized with ${providerName}`);

@@ -290,7 +290,7 @@ export default function HomeScreen() {
 
         {/* Section 1: Today's Tasks */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>Today's Tasks</Text>
+          <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>{"Today's Tasks"}</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/tasks')}>
             <Text style={[styles.seeAllText, { color: theme.primary }]}>See All ({tasks.length})</Text>
           </TouchableOpacity>
@@ -341,7 +341,7 @@ export default function HomeScreen() {
 
         {/* Section 2: Today's Habits */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>Today's Habits</Text>
+          <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>{"Today's Habits"}</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/habits')}>
             <Text style={[styles.seeAllText, { color: theme.primary }]}>Manage ({habits.length})</Text>
           </TouchableOpacity>

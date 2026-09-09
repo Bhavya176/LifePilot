@@ -7,19 +7,15 @@ import { getGamificationProfile, awardXP } from '../services/gamificationService
 
 export function useExpenses() {
   const { user } = useAuth();
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setExpenses([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = expenseService.subscribeUserExpenses(activeUid, (fetchedExpenses) => {
       setExpenses(fetchedExpenses);
       setLoading(false);

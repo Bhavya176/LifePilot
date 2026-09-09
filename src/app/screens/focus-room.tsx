@@ -51,16 +51,14 @@ export default function FocusRoomScreen() {
 
   // Local timer when focusing
   useEffect(() => {
-    let interval: any = null;
-    if (isFocusing) {
-      interval = setInterval(() => {
-        setElapsedSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setElapsedSeconds(0);
-    }
+    if (!isFocusing) return;
+
+    const interval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
     return () => {
-      if (interval) clearInterval(interval);
+      clearInterval(interval);
     };
   }, [isFocusing]);
 
@@ -72,6 +70,7 @@ export default function FocusRoomScreen() {
 
   const handleJoin = async () => {
     const activityToSet = customActivity.trim() || selectedPreset;
+    setElapsedSeconds(0);
     await joinSession(activityToSet);
     setJoinModalVisible(false);
     setCustomActivity('');
@@ -85,6 +84,7 @@ export default function FocusRoomScreen() {
         style: 'destructive',
         onPress: async () => {
           await leaveSession();
+          setElapsedSeconds(0);
         },
       },
     ]);

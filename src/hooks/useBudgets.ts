@@ -5,24 +5,22 @@ import { CategoryBudget, ExpenseCategory } from '../types/expense';
 
 export function useBudgets() {
   const { user } = useAuth();
+  const userId = user?.uid;
   const [budgets, setBudgets] = useState<CategoryBudget[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(Boolean(userId));
 
   useEffect(() => {
-    if (!user) {
-      setBudgets([]);
-      setLoading(false);
+    if (!userId) {
       return;
     }
 
-    setLoading(true);
-    const unsubscribe = budgetService.subscribeUserBudgets(user.uid, (fetched) => {
+    const unsubscribe = budgetService.subscribeUserBudgets(userId, (fetched) => {
       setBudgets(fetched);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [userId]);
 
   const saveBudget = async (category: ExpenseCategory, monthlyLimit: number) => {
     if (!user) return;

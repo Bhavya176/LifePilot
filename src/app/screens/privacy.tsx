@@ -23,7 +23,7 @@ export default function PrivacyScreen() {
             </Text>
           </View>
           <Text style={[styles.text, { color: theme.textSecondary }]}>
-            LifePilot respects your personal data. All user data, documents, tasks, habits, and notes are stored strictly under your private Firestore collection path (`users/{'{uid}'}/*`) and Firebase Storage path (`users/{'{uid}'}/*`).
+            {"LifePilot respects your personal data. All user data, documents, tasks, habits, and notes are stored strictly under your private Firestore collection path (users/{uid}/*) and Firebase Storage path (users/{uid}/*)."}
           </Text>
           <Text style={[styles.text, { color: theme.textSecondary, marginTop: SPACING.md }]}>
             Firebase Security Rules enforce that no other user can read, modify, or list your records or uploaded files.

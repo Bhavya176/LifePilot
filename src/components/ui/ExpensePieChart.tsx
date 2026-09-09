@@ -46,12 +46,13 @@ export const ExpensePieChart: React.FC<ExpensePieChartProps> = ({ expenses, isDa
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  // Build slice segments for SVG circle dasharray
-  let accumulatedPercent = 0;
-  const slices = categoriesWithSpent.map((cat) => {
+  // Build slice segments for SVG circle dasharray using pure prefix sums
+  const slices = categoriesWithSpent.map((cat, index) => {
     const strokeDash = (cat.percentage / 100) * circumference;
+    const accumulatedPercent = categoriesWithSpent
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.percentage, 0);
     const strokeOffset = (accumulatedPercent / 100) * circumference;
-    accumulatedPercent += cat.percentage;
     return {
       ...cat,
       strokeDash,

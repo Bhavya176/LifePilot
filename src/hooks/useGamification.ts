@@ -18,12 +18,22 @@ export function useGamification() {
   const [newBadges, setNewBadges] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!user?.uid) return;
-    setLoading(true);
-    getGamificationProfile(user.uid)
-      .then((p) => setProfile(p))
-      .finally(() => setLoading(false));
-  }, [user?.uid]);
+    const uid = user?.uid;
+    if (!uid) return;
+
+    let isMounted = true;
+    getGamificationProfile(uid)
+      .then((p) => {
+        if (isMounted) setProfile(p);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
 
   const earnXP = useCallback(
     async (action: XPAction) => {
@@ -39,7 +49,7 @@ export function useGamification() {
         setNewBadges(result.newAchievements);
       }
     },
-    [user?.uid, profile]
+    [user, profile]
   );
 
   const recordStreak = useCallback(
@@ -48,7 +58,7 @@ export function useGamification() {
       const updated = await updateBestStreak(user.uid, streak, profile);
       setProfile(updated);
     },
-    [user?.uid, profile]
+    [user, profile]
   );
 
   const dismissLevelUp = useCallback(() => setLevelUpVisible(false), []);

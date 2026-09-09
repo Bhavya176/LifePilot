@@ -7,19 +7,15 @@ import { getGamificationProfile, awardXP } from '../services/gamificationService
 
 export function useTasks(filter?: 'today' | 'upcoming' | 'completed' | 'high_priority') {
   const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setTasks([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = taskService.subscribeUserTasks(
       activeUid,
       (fetchedTasks) => {

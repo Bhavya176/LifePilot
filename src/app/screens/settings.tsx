@@ -30,7 +30,7 @@ import { s, vs, ms, fs } from '../../utils/responsive';
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDarkMode, toggleTheme } = useTheme();
-  const { user, signOut } = useAuthContext();
+  const { user, signOut, deleteAccount } = useAuthContext();
   const { isOnline } = useNetwork();
   const { isBiometricEnabled, toggleBiometric } = useSecurity();
   const { currentLevel, profile: xpProfile } = useGamification();
@@ -52,6 +52,32 @@ export default function SettingsScreen() {
         },
       },
     ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account Permanently',
+      'Are you absolutely sure? This will delete your LifePilot account and all associated personal data (tasks, habits, notes, expenses, goals, and documents). This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              Alert.alert('Account Deleted', 'Your account and data have been permanently removed.');
+              router.replace('/(auth)/welcome');
+            } catch (err: any) {
+              Alert.alert(
+                'Deletion Error',
+                err.message || 'Failed to delete account. You may need to log in again before completing this action.'
+              );
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -355,15 +381,26 @@ export default function SettingsScreen() {
           </Text>
         </View>
 
-        {/* Sign Out Button */}
+        {/* Account Sign Out & Deletion Actions */}
         <Button
           title="Sign Out of Account"
-          variant="danger"
+          variant="outline"
           onPress={handleLogout}
           isDarkMode={isDarkMode}
           size="lg"
-          style={{ marginBottom: vs(SPACING.xl) }}
+          style={{ marginBottom: vs(SPACING.sm) }}
         />
+
+        <TouchableOpacity
+          style={styles.deleteAccountBtn}
+          onPress={handleDeleteAccount}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={16} color="#EF4444" style={{ marginRight: s(SPACING.xs) }} />
+          <Text style={styles.deleteAccountText}>
+            Delete Account & Personal Data
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -501,5 +538,21 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: fs(11.5),
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(SPACING.sm + 2),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1,
+    borderColor: '#EF444435',
+    backgroundColor: '#EF444410',
+    marginBottom: vs(SPACING.xl),
+  },
+  deleteAccountText: {
+    color: '#EF4444',
+    fontSize: fs(13),
+    fontWeight: '700',
   },
 });

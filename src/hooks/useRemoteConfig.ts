@@ -11,7 +11,6 @@ export function useRemoteConfig() {
   const [loading, setLoading] = useState<boolean>(true);
 
   const fetchConfig = useCallback(async () => {
-    setLoading(true);
     try {
       const activeConfig = await initRemoteConfig();
       setConfig(activeConfig);
@@ -23,8 +22,22 @@ export function useRemoteConfig() {
   }, []);
 
   useEffect(() => {
-    fetchConfig();
-  }, [fetchConfig]);
+    let isMounted = true;
+    (async () => {
+      try {
+        const activeConfig = await initRemoteConfig();
+        if (isMounted) setConfig(activeConfig);
+      } catch {
+        if (isMounted) setConfig(getRemoteConfigValues());
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return {
     config,

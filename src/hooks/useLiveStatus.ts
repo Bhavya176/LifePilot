@@ -10,21 +10,18 @@ import {
 
 export function useLiveStatus() {
   const { user } = useAuth();
+  const activeUid = auth.currentUser?.uid || user?.uid;
   const [presence, setPresence] = useState<UserLivePresence | null>({
     status: 'Working',
     lastUpdated: new Date().toISOString(),
   });
-  const [loading, setLoading] = useState<boolean>(true);
-
-  const activeUid = auth.currentUser?.uid || user?.uid;
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = subscribeUserLiveStatus(activeUid, (updatedPresence) => {
       setPresence(updatedPresence || { status: 'Working', lastUpdated: new Date().toISOString() });
       setLoading(false);

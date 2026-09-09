@@ -124,7 +124,7 @@ export default function HabitsScreen() {
                 {completionPercent}%
               </Text>
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-                Today's Target ({completedToday}/{totalHabits})
+                {"Today's Target"} ({completedToday}/{totalHabits})
               </Text>
             </View>
           </View>

@@ -17,7 +17,6 @@ export function useCommunityChat() {
   const typingTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
-    setLoading(true);
     const unsubMessages = subscribeChatMessages((msgs) => {
       setMessages(msgs);
       setLoading(false);
@@ -36,7 +35,7 @@ export function useCommunityChat() {
         setUserTyping(user.uid, user.name || '', false).catch(() => {});
       }
     };
-  }, [user?.uid]);
+  }, [user]);
 
   const sendMessage = async (text: string) => {
     if (!user || !text.trim()) return;

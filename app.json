@@ -7,26 +7,28 @@
     "icon": "./assets/images/icon.png",
     "scheme": "lifepilot",
     "userInterfaceStyle": "automatic",
-    "jsEngine": "hermes",
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "com.bhavya.LifePilot",
+      "buildNumber": "1",
       "supportsTablet": false,
-      "jsEngine": "hermes",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "LifePilot needs camera access to capture attachments for tasks and notes.",
+        "NSPhotoLibraryUsageDescription": "LifePilot needs photo library access to attach images and customize your profile.",
+        "NSFaceIDUsageDescription": "LifePilot uses Face ID to securely authenticate and unlock your private document vault."
       }
     },
     "android": {
       "package": "com.bhavya.LifePilot",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#131127",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "jsEngine": "hermes"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -48,10 +50,24 @@
           "imageWidth": 100
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "LifePilot needs photo library access to attach images and customize your profile.",
+          "cameraPermission": "LifePilot needs camera access to capture attachments for tasks and notes."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "LifePilot uses Face ID to securely authenticate and unlock your private document vault."
+        }
+      ],
       "expo-sharing",
       "expo-secure-store",
       "expo-updates",
-      "expo-notifications"
+      "expo-notifications",
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

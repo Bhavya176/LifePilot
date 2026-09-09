@@ -2,15 +2,17 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  deleteUser,
   sendPasswordResetEmail,
   sendEmailVerification,
   updateProfile,
   onAuthStateChanged,
   User as FirebaseUser,
 } from 'firebase/auth';
+import { deleteDoc } from 'firebase/firestore';
 import { auth } from './config';
 import { UserProfile } from '../types/user';
-import { updateUserDoc } from './firestore';
+import { updateUserDoc, getUserDocRef } from './firestore';
 import { AnalyticsService } from './analytics';
 
 export { auth };
@@ -36,6 +38,8 @@ export function getFriendlyAuthErrorMessage(error: any): string {
       return 'Network connection error. Please check your internet.';
     case 'auth/too-many-requests':
       return 'Too many attempts. Please try again in a few moments.';
+    case 'auth/requires-recent-login':
+      return 'For security purposes, please log in again before deleting your account.';
     default:
       return error?.message || 'An authentication error occurred. Please try again.';
   }
@@ -115,6 +119,32 @@ export async function sendVerificationEmail(): Promise<void> {
 export async function logoutUser(): Promise<void> {
   AnalyticsService.setUserIdentifier(null);
   await firebaseSignOut(auth);
+}
+
+/**
+ * Permanently delete user account and profile data (Apple App Store Guideline 5.1.1(v) Compliance)
+ */
+export async function deleteUserAccount(): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw new Error('No authenticated user found to delete.');
+  }
+
+  const userId = currentUser.uid;
+
+  try {
+    // 1. Delete user root document in Firestore
+    const userDocRef = getUserDocRef(userId);
+    await deleteDoc(userDocRef).catch((e) => console.warn('User doc cleanup warning:', e));
+
+    // 2. Clear analytics tracking
+    AnalyticsService.setUserIdentifier(null);
+
+    // 3. Delete Firebase Auth user
+    await deleteUser(currentUser);
+  } catch (error: any) {
+    throw new Error(getFriendlyAuthErrorMessage(error));
+  }
 }
 
 /** Subscribe to real-time Firebase Auth state */

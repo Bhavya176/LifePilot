@@ -50,10 +50,6 @@ export default function ExpoLabsScreen() {
   // Clipboard State
   const [clipboardText, setClipboardText] = useState<string>('');
 
-  useEffect(() => {
-    loadHardwareDiagnostics();
-  }, []);
-
   const loadHardwareDiagnostics = async () => {
     try {
       if (Platform.OS !== 'web') {
@@ -76,6 +72,13 @@ export default function ExpoLabsScreen() {
       console.warn('Battery diagnostics error:', e);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadHardwareDiagnostics();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   // --- EAS OTA Update Handler ---
   const handleCheckUpdate = async () => {

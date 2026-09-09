@@ -7,19 +7,15 @@ import { getGamificationProfile, awardXP } from '../services/gamificationService
 
 export function useNotes() {
   const { user } = useAuth();
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
   const activeUid = auth.currentUser?.uid || user?.uid;
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState<boolean>(Boolean(activeUid));
 
   useEffect(() => {
     if (!activeUid) {
-      setNotes([]);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     const unsubscribe = noteService.subscribeUserNotes(activeUid, (fetchedNotes) => {
       setNotes(fetchedNotes);
       setLoading(false);

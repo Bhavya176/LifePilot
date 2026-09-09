@@ -7,33 +7,31 @@ import { AppNotification, NotificationType } from '../types/notification';
 
 export function useNotifications() {
   const { user } = useAuth();
+  const userId = user?.uid;
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(Boolean(userId));
   const [fcmToken, setFcmToken] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-      setLoading(false);
+    if (!userId) {
       return;
     }
 
     // Register push notification token on login
-    registerForPushNotificationsAsync(user.uid).then(async (token) => {
+    registerForPushNotificationsAsync(userId).then(async (token) => {
       if (token) {
         setFcmToken(token);
-        await updateUserDoc(user.uid, { fcmToken: token }).catch(() => null);
+        await updateUserDoc(userId, { fcmToken: token }).catch(() => null);
       }
     });
 
-    setLoading(true);
-    const unsubscribe = notificationService.subscribeUserNotifications(user.uid, (fetched) => {
+    const unsubscribe = notificationService.subscribeUserNotifications(userId, (fetched) => {
       setNotifications(fetched);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [userId]);
 
   const markRead = async (id: string) => {
     if (!user) return;
