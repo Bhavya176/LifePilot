@@ -3,6 +3,7 @@ import {
   getFirestore,
   persistentLocalCache,
   persistentSingleTabManager,
+  memoryLocalCache,
   enableNetwork,
   disableNetwork,
   collection,
@@ -23,14 +24,18 @@ import {
   QueryConstraint,
 } from 'firebase/firestore';
 import { app } from './config';
+import { Platform } from 'react-native';
 
 let firestoreDb: Firestore;
 
 try {
   firestoreDb = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentSingleTabManager(undefined),
-    }),
+    localCache:
+      Platform.OS === 'web'
+        ? persistentLocalCache({
+            tabManager: persistentSingleTabManager(undefined),
+          })
+        : memoryLocalCache(),
   });
 } catch (e) {
   firestoreDb = getFirestore(app);
@@ -66,10 +71,34 @@ export function getUserSubDocRef(userId: string, subCollection: string, docId: s
   return doc(db, 'users', userId, subCollection, docId);
 }
 
+/**
+ * Recursively strips undefined keys from an object to prevent Firestore errors:
+ * "Unsupported field value: undefined"
+ */
+export function sanitizeFirestoreData<T>(data: T): T {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  if (Array.isArray(data)) {
+    return data.map(sanitizeFirestoreData) as unknown as T;
+  }
+  if (typeof data === 'object' && !(data instanceof Date)) {
+    const clean: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data as Record<string, any>)) {
+      if (value !== undefined) {
+        clean[key] = sanitizeFirestoreData(value);
+      }
+    }
+    return clean as T;
+  }
+  return data;
+}
+
 export async function updateUserDoc(userId: string, data: any): Promise<void> {
   const dRef = getUserDocRef(userId);
+  const cleanData = sanitizeFirestoreData(data);
   await setDoc(dRef, {
-    ...data,
+    ...cleanData,
     updatedAt: new Date().toISOString(),
   }, { merge: true });
 }
@@ -81,8 +110,9 @@ export async function addDocument<T extends DocumentData>(
   data: any
 ): Promise<string> {
   const colRef = getUserCollectionRef(userId, subCollection);
+  const cleanData = sanitizeFirestoreData(data);
   const docRef = await addDoc(colRef, {
-    ...data,
+    ...cleanData,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
@@ -96,8 +126,9 @@ export async function setDocumentWithId<T extends DocumentData>(
   data: T
 ): Promise<void> {
   const dRef = getUserSubDocRef(userId, subCollection, docId);
+  const cleanData = sanitizeFirestoreData(data);
   await setDoc(dRef, {
-    ...data,
+    ...cleanData,
     updatedAt: new Date().toISOString(),
   }, { merge: true });
 }
@@ -109,8 +140,9 @@ export async function updateDocument<T extends DocumentData>(
   data: Partial<T>
 ): Promise<void> {
   const dRef = getUserSubDocRef(userId, subCollection, docId);
+  const cleanData = sanitizeFirestoreData(data);
   await updateDoc(dRef, {
-    ...data,
+    ...cleanData,
     updatedAt: new Date().toISOString(),
   });
 }

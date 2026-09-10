@@ -1,9 +1,14 @@
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(amount);
+  try {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: (amount % 1 === 0) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(amount || 0);
+  } catch {
+    return `₹${Number(amount || 0).toLocaleString('en-IN')}`;
+  }
 }
 
 export function formatFileSize(bytes: number): string {

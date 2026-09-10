@@ -447,8 +447,8 @@ export default function ExpensesScreen() {
             </View>
 
             <Input
-              label="Amount ($) *"
-              placeholder="e.g. 18.50"
+              label="Amount (₹) *"
+              placeholder="e.g. 250"
               value={amount}
               onChangeText={setAmount}
               keyboardType="decimal-pad"
@@ -589,8 +589,8 @@ export default function ExpensesScreen() {
             </View>
 
             <Input
-              label="Monthly Limit ($)"
-              placeholder="e.g. 500"
+              label="Monthly Limit (₹)"
+              placeholder="e.g. 5000"
               keyboardType="numeric"
               value={budgetLimitInput}
               onChangeText={setBudgetLimitInput}

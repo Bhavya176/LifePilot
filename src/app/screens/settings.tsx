@@ -22,7 +22,6 @@ import { Header } from '../../components/ui/Header';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { checkFirebaseStatus } from '../../firebase/config';
-import { useRemoteConfig } from '../../hooks/useRemoteConfig';
 import { SentryService } from '../../services/sentry';
 import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
@@ -34,9 +33,9 @@ export default function SettingsScreen() {
   const { isOnline } = useNetwork();
   const { isBiometricEnabled, toggleBiometric } = useSecurity();
   const { currentLevel, profile: xpProfile } = useGamification();
-  const { config: remoteCfg } = useRemoteConfig();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const fbStatus = checkFirebaseStatus();
+  const sentryStatus = SentryService.getSentryStatus();
 
   const [devToolsExpanded, setDevToolsExpanded] = useState(false);
 
@@ -359,14 +358,45 @@ export default function SettingsScreen() {
             <View style={styles.divider} />
             <View style={styles.configRow}>
               <Text style={[styles.configKey, { color: theme.textSecondary }]}>Sentry Diagnostics:</Text>
-              <Text style={[styles.configVal, { color: theme.success }]}>Online (Active)</Text>
+              <Text
+                style={[
+                  styles.configVal,
+                  { color: sentryStatus.isOnline ? theme.success : theme.warning },
+                ]}
+              >
+                {sentryStatus.isOnline ? 'Online (Active)' : 'Passive (Local Mode)'}
+              </Text>
+            </View>
+            <View style={styles.divider} />
+            <View style={styles.configRow}>
+              <Text style={[styles.configKey, { color: theme.textSecondary }]}>Sentry Environment:</Text>
+              <Text style={[styles.configVal, { color: theme.primary }]}>
+                {sentryStatus.environment} ({sentryStatus.release})
+              </Text>
             </View>
             <View style={styles.divider} />
             <TouchableOpacity
               style={styles.diagBtn}
               onPress={() => {
-                SentryService.addBreadcrumb('Diagnostics check executed from Settings', 'ui.diagnostics');
-                SentryService.generateTestCrash();
+                Alert.alert(
+                  'Sentry Diagnostic Suite',
+                  `Mode: ${sentryStatus.isOnline ? 'Active (Live DSN Ingest)' : 'Passive (Local Mode)'}\nRelease: ${sentryStatus.release}\nEnv: ${sentryStatus.environment}\n\nSelect a diagnostic scenario to execute:`,
+                  [
+                    {
+                      text: 'Test Handled Error',
+                      onPress: () => SentryService.generateTestCrash(),
+                    },
+                    {
+                      text: 'Send Info Message Ping',
+                      onPress: () => SentryService.generateTestMessage(),
+                    },
+                    {
+                      text: 'Record Breadcrumb Trail',
+                      onPress: () => SentryService.generateTestBreadcrumb(),
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                  ]
+                );
               }}
             >
               <Ionicons name="pulse-outline" size={16} color={theme.primary} />

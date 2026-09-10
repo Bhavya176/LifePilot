@@ -136,7 +136,7 @@ export default function TaskDetailScreen() {
           priority,
           category,
           reminder,
-          imageUrl,
+          ...(imageUrl ? { imageUrl } : {}),
         });
       } else {
         await addTask({
@@ -147,7 +147,7 @@ export default function TaskDetailScreen() {
           category,
           completed: false,
           reminder,
-          imageUrl,
+          ...(imageUrl ? { imageUrl } : {}),
         });
       }
       router.back();

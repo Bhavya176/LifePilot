@@ -68,7 +68,14 @@
       "expo-updates",
       "expo-notifications",
       "expo-image",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "organization": "o4512057872482304",
+          "project": "lifepilot"
+        }
+      ],
+      "./plugins/withLifePilotNativeConfig.js"
     ],
     "experiments": {
       "typedRoutes": true,

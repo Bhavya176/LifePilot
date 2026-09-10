@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useNavigationContainerRef } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Sentry from '@sentry/react-native';
 import { ThemeProvider } from '../context/ThemeContext';
@@ -11,7 +11,7 @@ import { OfflineBanner } from '../components/ui/OfflineBanner';
 import { AppUpdateModal } from '../components/ui/AppUpdateModal';
 import { initAppCheck } from '../firebase/appCheck';
 import { initRemoteConfig } from '../firebase/remoteConfig';
-import { initSentry } from '../services/sentry';
+import { initSentry, routingInstrumentation } from '../services/sentry';
 
 // Initialize Sentry error reporting before mounting component tree
 initSentry();
@@ -19,6 +19,14 @@ initSentry();
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayout() {
+  const navigationRef = useNavigationContainerRef();
+
+  useEffect(() => {
+    if (navigationRef) {
+      routingInstrumentation.registerNavigationContainer(navigationRef);
+    }
+  }, [navigationRef]);
+
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
     // Asynchronously initialize App Check and Remote Config

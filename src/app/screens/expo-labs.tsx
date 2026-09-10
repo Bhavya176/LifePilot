@@ -28,11 +28,13 @@ import { UpdateEvaluation, getDefaultStoreUrl, getCurrentAppVersion } from '../.
 import { HapticsService } from '../../services/hapticsService';
 import { SecureStoreService } from '../../services/secureStoreService';
 import { LocalNotificationService } from '../../services/localNotificationService';
+import { SentryService } from '../../services/sentry';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function ExpoLabsScreen() {
   const { isDarkMode } = useTheme();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
+  const sentryStatus = SentryService.getSentryStatus();
   const { authenticateWithBiometrics } = useSecurity();
 
   // EAS & Updates State
@@ -642,6 +644,86 @@ export default function ExpoLabsScreen() {
               isDarkMode={isDarkMode}
               onPress={handleShareNative}
               style={styles.flexBtn}
+            />
+          </View>
+        </Card>
+
+        {/* SECTION 7: SENTRY MONITORING & TELEMETRY */}
+        <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>
+          🛡️ Sentry Monitoring & Crash Telemetry
+        </Text>
+        <Card isDarkMode={isDarkMode}>
+          <Text style={[styles.subLabel, { color: theme.textSecondary }]}>
+            Real-time crash tracking, breadcrumb trails, and route performance instrumentation.
+          </Text>
+
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>SDK Mode</Text>
+            <Badge
+              label={sentryStatus.isOnline ? 'Active (Live DSN)' : 'Passive (Local)'}
+              variant={sentryStatus.isOnline ? 'success' : 'warning'}
+              isDarkMode={isDarkMode}
+            />
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Environment</Text>
+            <Text style={[styles.infoVal, { color: theme.textPrimary }]}>
+              {sentryStatus.environment}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>Release Target</Text>
+            <Text style={[styles.infoVal, { color: theme.primary }]}>
+              {sentryStatus.release}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={[styles.infoLabel, { color: theme.textSecondary }]}>OTA Update Link</Text>
+            <Text
+              style={[styles.infoVal, { color: theme.textMuted, maxWidth: s(160) }]}
+              numberOfLines={1}
+            >
+              {sentryStatus.updateId}
+            </Text>
+          </View>
+
+          <Text style={[styles.groupTitle, { color: theme.textPrimary, marginTop: vs(SPACING.sm) }]}>
+            Scenario Tests
+          </Text>
+
+          <View style={{ gap: vs(8), marginTop: vs(4) }}>
+            <Button
+              title="1. Capture Handled Exception"
+              variant="primary"
+              size="sm"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="bug-outline" size={16} color="#FFFFFF" />}
+              onPress={async () => {
+                await HapticsService.medium();
+                SentryService.generateTestCrash();
+              }}
+            />
+            <Button
+              title="2. Send Diagnostic Info Ping"
+              variant="secondary"
+              size="sm"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="chatbox-ellipses-outline" size={16} color={theme.textPrimary} />}
+              onPress={async () => {
+                await HapticsService.light();
+                SentryService.generateTestMessage();
+              }}
+            />
+            <Button
+              title="3. Record Custom Breadcrumb"
+              variant="outline"
+              size="sm"
+              isDarkMode={isDarkMode}
+              icon={<Ionicons name="trail-sign-outline" size={16} color={theme.primary} />}
+              onPress={async () => {
+                await HapticsService.light();
+                SentryService.generateTestBreadcrumb();
+              }}
             />
           </View>
         </Card>

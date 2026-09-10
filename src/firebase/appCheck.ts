@@ -29,47 +29,45 @@ export interface AppCheckStatus {
  */
 export async function initAppCheck(): Promise<AppCheckStatus> {
   const isDev = __DEV__;
-  let providerName = 'Debug/Custom Provider';
+  let providerName = 'Unenforced / Not configured';
 
   try {
-    // Configure self-declared debug token in development mode so dev builds are never blocked
-    if (isDev) {
-      const debugToken = process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN || 'A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D';
-      (globalThis as any).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
-    }
+    const debugToken = process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN;
+    const recaptchaKey = process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY;
 
     if (Platform.OS === 'web') {
-      const recaptchaSiteKey = process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY || '6LcDemoKeyForLifePilotWebSiteKey123456';
+      if (!recaptchaKey || recaptchaKey.includes('DemoKey')) {
+        return {
+          isInitialized: false,
+          providerName: 'Not configured (Missing RECAPTCHA_SITE_KEY)',
+          isDevelopmentMode: isDev,
+        };
+      }
       appCheckInstance = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+        provider: new ReCaptchaV3Provider(recaptchaKey),
         isTokenAutoRefreshEnabled: true,
       });
       providerName = 'ReCAPTCHA v3 Provider';
-    } else if (isDev || process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN) {
-      // Native debug token provider (only in development or when explicitly provided)
+    } else if (debugToken && !debugToken.includes('A1B2C3D4')) {
+      // Native debug token provider (only when explicitly provided with a registered token)
+      (globalThis as any).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
       appCheckInstance = initializeAppCheck(app, {
         provider: new CustomProvider({
-          getToken: async () => {
-            try {
-              return {
-                token: process.env.EXPO_PUBLIC_APP_CHECK_DEBUG_TOKEN || 'A1B2C3D4-E5F6-4A5B-8C9D-0E1F2A3B4C5D',
-                expireTimeMillis: Date.now() + 3600 * 1000,
-              };
-            } catch (err) {
-              console.warn('[Firebase App Check] Error getting token:', err);
-              return {
-                token: '',
-                expireTimeMillis: Date.now(),
-              };
-            }
-          },
+          getToken: async () => ({
+            token: debugToken,
+            expireTimeMillis: Date.now() + 3600 * 1000,
+          }),
         }),
         isTokenAutoRefreshEnabled: true,
       });
-      providerName = isDev ? 'Debug Provider (Dev Mode)' : 'Custom Token Provider';
+      providerName = 'Debug Provider (Registered Token)';
     } else {
-      // In native production without dedicated App Check native module, avoid mock tokens
-      providerName = 'Native (Managed by Firebase Console)';
+      // Avoid passing fake dummy tokens to Firebase which cause HTTP 403 fetch-status-error
+      return {
+        isInitialized: false,
+        providerName: 'Unenforced / Not configured',
+        isDevelopmentMode: isDev,
+      };
     }
 
     console.log(`[Firebase App Check] Initialized with ${providerName}`);

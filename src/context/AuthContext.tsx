@@ -51,7 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = subscribeToAuthChanges((currentUser) => {
       setUser(currentUser);
       if (currentUser) {
-        SentryService.setUser(currentUser.uid, currentUser.email);
+        SentryService.setUser(currentUser.uid, currentUser.email, currentUser.name);
+        SentryService.addBreadcrumb('Auth state changed: signed in', 'auth', 'info');
       } else {
         SentryService.setUser(null);
       }
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setUser(null);
       SentryService.setUser(null);
+      SentryService.addBreadcrumb('User signed out', 'auth', 'info');
     }
   };
 
@@ -77,6 +79,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await deleteUserAccount();
     } finally {
       setUser(null);
+      SentryService.setUser(null);
+      SentryService.addBreadcrumb('User account deleted and session purged', 'auth', 'info');
     }
   };
 

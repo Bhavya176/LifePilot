@@ -14,6 +14,7 @@ import { auth } from './config';
 import { UserProfile } from '../types/user';
 import { updateUserDoc, getUserDocRef } from './firestore';
 import { AnalyticsService } from './analytics';
+import { SentryService } from '../services/sentry';
 
 export { auth };
 
@@ -60,9 +61,11 @@ export async function loginUser(email: string, pass: string): Promise<UserProfil
 
     AnalyticsService.logEvent('login', { method: 'password' });
     AnalyticsService.setUserIdentifier(formatted.uid);
+    SentryService.addBreadcrumb('User logged in successfully', 'auth', 'info');
 
     return formatted;
   } catch (error: any) {
+    SentryService.addBreadcrumb(`User login failed: ${error?.code || 'unknown'}`, 'auth', 'warning');
     throw new Error(getFriendlyAuthErrorMessage(error));
   }
 }
@@ -92,9 +95,11 @@ export async function registerUser(email: string, pass: string, name: string): P
 
     AnalyticsService.logEvent('sign_up', { method: 'password' });
     AnalyticsService.setUserIdentifier(formatted.uid);
+    SentryService.addBreadcrumb('User registered successfully', 'auth', 'info');
 
     return formatted;
   } catch (error: any) {
+    SentryService.addBreadcrumb(`User registration failed: ${error?.code || 'unknown'}`, 'auth', 'warning');
     throw new Error(getFriendlyAuthErrorMessage(error));
   }
 }
@@ -103,7 +108,9 @@ export async function registerUser(email: string, pass: string, name: string): P
 export async function resetPassword(email: string): Promise<void> {
   try {
     await sendPasswordResetEmail(auth, email.trim());
+    SentryService.addBreadcrumb('Password reset requested', 'auth', 'info');
   } catch (error: any) {
+    SentryService.addBreadcrumb(`Password reset failed: ${error?.code || 'unknown'}`, 'auth', 'warning');
     throw new Error(getFriendlyAuthErrorMessage(error));
   }
 }

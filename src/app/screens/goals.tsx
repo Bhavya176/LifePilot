@@ -303,7 +303,7 @@ export default function GoalsScreen() {
 
             <Input
               label="Goal Title *"
-              placeholder="e.g., Read 10 Books, Run 100km, Save $5,000"
+              placeholder="e.g., Read 10 Books, Run 100km, Save ₹50,000"
               value={title}
               onChangeText={setTitle}
               isDarkMode={isDarkMode}
@@ -340,7 +340,7 @@ export default function GoalsScreen() {
 
             <View style={styles.inlineInputs}>
               <Input
-                label="Unit (e.g. books, $, km)"
+                label="Unit (e.g. books, ₹, km)"
                 placeholder="books"
                 value={unit}
                 onChangeText={setUnit}
