@@ -6,6 +6,29 @@ export function getTodayString(): string {
   return `${year}-${month}-${day}`;
 }
 
+export function getTomorrowString(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function formatTimeTo12Hour(timeStr?: string): string {
+  if (!timeStr) return '';
+  const parts = timeStr.split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const minute = parts[1].padStart(2, '0');
+  if (isNaN(hour)) return timeStr;
+
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  hour = hour % 12;
+  hour = hour ? hour : 12; // 0 becomes 12
+  return `${String(hour).padStart(2, '0')}:${minute} ${ampm}`;
+}
+
 export function formatDate(dateString: string): string {
   if (!dateString) return '';
   const [year, month, day] = dateString.split('-').map(Number);

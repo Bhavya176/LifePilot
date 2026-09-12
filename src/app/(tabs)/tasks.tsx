@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useTasks } from '../../hooks/useTasks';
 import { exportService } from '../../services/exportService';
 import { useAuthContext } from '../../context/AuthContext';
+import { formatTimeTo12Hour } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 type FilterType = 'today' | 'upcoming' | 'completed' | 'high_priority';
@@ -136,7 +137,7 @@ export default function TasksScreen() {
               <View style={styles.taskCardHeader}>
                 <TouchableOpacity
                   style={styles.checkbox}
-                  onPress={() => toggleTask(task.id, task.completed)}
+                  onPress={() => toggleTask(task.id, task.completed, task.notificationId, task.isDaily)}
                 >
                   <Ionicons
                     name={task.completed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -154,9 +155,12 @@ export default function TasksScreen() {
                         title: task.title,
                         description: task.description || '',
                         dueDate: task.dueDate || '',
+                        dueTime: task.dueTime || '',
+                        isDaily: task.isDaily ? 'true' : 'false',
                         priority: task.priority,
                         category: task.category,
                         reminder: task.reminder ? 'true' : 'false',
+                        notificationId: task.notificationId || '',
                         imageUrl: task.imageUrl,
                       },
                     })
@@ -196,6 +200,14 @@ export default function TasksScreen() {
                         🕒 {task.dueDate}
                       </Text>
                     ) : null}
+                    {task.reminder && task.dueTime ? (
+                      <Badge
+                        label={`⏰ ${task.isDaily ? 'Daily ' : ''}${formatTimeTo12Hour(task.dueTime)}`}
+                        variant="warning"
+                        isDarkMode={isDarkMode}
+                        style={{ marginLeft: 6 }}
+                      />
+                    ) : null}
                     {task.imageUrl ? (
                       <Badge label="📷 Photo" variant="info" isDarkMode={isDarkMode} style={{ marginLeft: 6 }} />
                     ) : null}
@@ -212,7 +224,7 @@ export default function TasksScreen() {
                         {
                           text: 'Delete',
                           style: 'destructive',
-                          onPress: () => deleteTask(task.id),
+                          onPress: () => deleteTask(task.id, task.notificationId),
                         },
                       ]
                     );

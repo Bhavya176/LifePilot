@@ -8,6 +8,8 @@ export interface Task {
   description?: string;
   dueDate: string; // YYYY-MM-DD
   dueTime?: string; // HH:mm
+  isDaily?: boolean; // If true, repeats daily at dueTime
+  notificationId?: string; // Scheduled local notification ID
   priority: TaskPriority;
   category: TaskCategory;
   completed: boolean;

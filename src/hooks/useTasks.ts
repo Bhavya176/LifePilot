@@ -36,10 +36,15 @@ export function useTasks(filter?: 'today' | 'upcoming' | 'completed' | 'high_pri
     return created;
   };
 
-  const toggleTask = async (taskId: string, currentCompleted: boolean) => {
+  const toggleTask = async (
+    taskId: string,
+    currentCompleted: boolean,
+    notificationId?: string,
+    isDaily?: boolean
+  ) => {
     const uidToUse = auth.currentUser?.uid || user?.uid;
     if (!uidToUse) return;
-    const toggled = await taskService.toggleTaskCompleted(uidToUse, taskId, currentCompleted);
+    const toggled = await taskService.toggleTaskCompleted(uidToUse, taskId, currentCompleted, notificationId, isDaily);
     if (!currentCompleted) {
       getGamificationProfile(uidToUse).then((p) => awardXP(uidToUse, 'COMPLETE_TASK', p)).catch(() => {});
     }
@@ -52,10 +57,10 @@ export function useTasks(filter?: 'today' | 'upcoming' | 'completed' | 'high_pri
     return taskService.updateTask(uidToUse, taskId, updates);
   };
 
-  const deleteTask = async (taskId: string) => {
+  const deleteTask = async (taskId: string, notificationId?: string) => {
     const uidToUse = auth.currentUser?.uid || user?.uid;
     if (!uidToUse) return;
-    return taskService.deleteTask(uidToUse, taskId);
+    return taskService.deleteTask(uidToUse, taskId, notificationId);
   };
 
   return {

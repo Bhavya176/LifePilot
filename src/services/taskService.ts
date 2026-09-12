@@ -7,6 +7,7 @@ import {
 import { Task } from '../types/task';
 import { AnalyticsService } from '../firebase/analytics';
 import { getTodayString } from '../utils/dateUtils';
+import { cancelTaskReminder } from '../firebase/messaging';
 
 export const taskService = {
   async createTask(
@@ -29,15 +30,28 @@ export const taskService = {
     return updateDocument(userId, 'tasks', taskId, updates);
   },
 
-  async toggleTaskCompleted(userId: string, taskId: string, currentCompleted: boolean): Promise<void> {
+  async toggleTaskCompleted(
+    userId: string,
+    taskId: string,
+    currentCompleted: boolean,
+    notificationId?: string,
+    isDaily?: boolean
+  ): Promise<void> {
     const newStatus = !currentCompleted;
     if (newStatus) {
       AnalyticsService.logEvent('task_completed', { taskId });
+      // If one-time task is completed, cancel its future notification so it won't disturb the user
+      if (notificationId && !isDaily) {
+        cancelTaskReminder(notificationId).catch(() => {});
+      }
     }
     return updateDocument(userId, 'tasks', taskId, { completed: newStatus });
   },
 
-  async deleteTask(userId: string, taskId: string): Promise<void> {
+  async deleteTask(userId: string, taskId: string, notificationId?: string): Promise<void> {
+    if (notificationId) {
+      cancelTaskReminder(notificationId).catch(() => {});
+    }
     return removeDocument(userId, 'tasks', taskId);
   },
 

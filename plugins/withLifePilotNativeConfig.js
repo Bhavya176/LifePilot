@@ -22,13 +22,27 @@ const withLifePilotNativeConfig = (config) => {
         if (!content.includes(patchMarker)) {
           const patchCode = `
     ${patchMarker}
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+      end
+    end
+    installer.aggregate_targets.each do |target|
+      target.user_project.targets.each do |user_target|
+        user_target.build_configurations.each do |config|
+          config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        end
+      end
+    end
+
     frameworks_script = File.join(__dir__, 'Pods/Target Support Files/Pods-LifePilot/Pods-LifePilot-frameworks.sh')
     if File.exist?(frameworks_script)
-      content = File.read(frameworks_script)
-      if content.include?('[ -n "#{EXPANDED_CODE_SIGN_IDENTITY:-}"')
-        content.gsub!('[ -n "#{EXPANDED_CODE_SIGN_IDENTITY:-}"', 'local identity="#{EXPANDED_CODE_SIGN_IDENTITY:-$CODE_SIGN_IDENTITY}"; if [ -n "#{identity:-}"')
-        content.gsub!('codesign --force --sign #{EXPANDED_CODE_SIGN_IDENTITY}', 'codesign --force --sign "#{identity}"')
-        File.write(frameworks_script, content)
+      script_content = File.read(frameworks_script)
+      search_pattern = 'if [ -n "\${EXPANDED_CODE_SIGN_IDENTITY:-}"'
+      if script_content.include?(search_pattern)
+        script_content.gsub!(search_pattern, 'local identity="\${EXPANDED_CODE_SIGN_IDENTITY:-$CODE_SIGN_IDENTITY}"; if [ -n "\${identity:-}" -a "\${identity}" != "-"')
+        script_content.gsub!('codesign --force --sign \${EXPANDED_CODE_SIGN_IDENTITY}', 'codesign --force --sign "\${identity}"')
+        File.write(frameworks_script, script_content)
       end
     end`;
 

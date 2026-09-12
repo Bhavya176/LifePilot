@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { Stack, useNavigationContainerRef } from 'expo-router';
+import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Notifications from 'expo-notifications';
 import * as Sentry from '@sentry/react-native';
 import { ThemeProvider } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
@@ -20,6 +21,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootLayout() {
   const navigationRef = useNavigationContainerRef();
+  const router = useRouter();
 
   useEffect(() => {
     if (navigationRef) {
@@ -32,7 +34,21 @@ function RootLayout() {
     // Asynchronously initialize App Check and Remote Config
     initAppCheck().catch(() => {});
     initRemoteConfig().catch(() => {});
-  }, []);
+
+    // Listen to notification interactions when user taps banner
+    const notificationSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response?.notification?.request?.content?.data;
+      if (data?.type === 'pomodoro') {
+        router.push('/screens/pomodoro');
+      } else if (data?.type === 'task' || data?.type === 'morning_briefing' || data?.type === 'night_recap') {
+        router.push('/screens/notifications');
+      }
+    });
+
+    return () => {
+      notificationSubscription.remove();
+    };
+  }, [router]);
 
   return (
     <ErrorBoundary>
