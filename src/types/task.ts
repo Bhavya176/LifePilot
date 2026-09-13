@@ -9,7 +9,8 @@ export interface Task {
   dueDate: string; // YYYY-MM-DD
   dueTime?: string; // HH:mm
   isDaily?: boolean; // If true, repeats daily at dueTime
-  notificationId?: string; // Scheduled local notification ID
+  notificationId?: string; // Scheduled local notification ID (or comma-separated IDs for repeat alarms)
+  alarmMode?: boolean; // If true, uses aggressive repeating alarm reminders
   priority: TaskPriority;
   category: TaskCategory;
   completed: boolean;

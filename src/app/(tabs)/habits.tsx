@@ -22,6 +22,8 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useHabits } from '../../hooks/useHabits';
+import { useAuthContext } from '../../context/AuthContext';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 import { getTodayString } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
 import { HabitHeatmap } from '../../components/ui/HabitHeatmap';
@@ -29,10 +31,12 @@ import { Habit } from '../../types/habit';
 
 export default function HabitsScreen() {
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const { habits, loading, addHabit, toggleHabit, deleteHabit } = useHabits();
 
   const [modalVisible, setModalVisible] = useState(false);
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [frequency, setFrequency] = useState<'daily' | 'weekly'>('daily');
@@ -91,6 +95,14 @@ export default function HabitsScreen() {
     );
   };
 
+  const handleOpenAddHabit = () => {
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
+    setModalVisible(true);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       <Header
@@ -100,7 +112,7 @@ export default function HabitsScreen() {
         rightAction={
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: theme.primary }]}
-            onPress={() => setModalVisible(true)}
+            onPress={handleOpenAddHabit}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -149,7 +161,7 @@ export default function HabitsScreen() {
             title="No Habits Yet"
             description="Start building positive routines. Tap + to add your first habit tracker."
             actionTitle="Add New Habit"
-            onAction={() => setModalVisible(true)}
+            onAction={handleOpenAddHabit}
             iconName="flame-outline"
             isDarkMode={isDarkMode}
           />
@@ -341,6 +353,12 @@ export default function HabitsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Habit"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }

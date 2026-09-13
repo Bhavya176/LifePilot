@@ -149,9 +149,13 @@ export default function SearchScreen() {
             title: task.title,
             description: task.description || '',
             dueDate: task.dueDate,
+            dueTime: task.dueTime,
+            isDaily: task.isDaily ? 'true' : 'false',
             priority: task.priority,
             category: task.category,
             reminder: task.reminder ? 'true' : 'false',
+            notificationId: task.notificationId || '',
+            alarmMode: task.alarmMode ? 'true' : 'false',
           },
         });
       }

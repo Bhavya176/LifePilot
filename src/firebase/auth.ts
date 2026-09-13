@@ -1,6 +1,7 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut as firebaseSignOut,
   deleteUser,
   sendPasswordResetEmail,
@@ -41,6 +42,9 @@ export function getFriendlyAuthErrorMessage(error: any): string {
       return 'Too many attempts. Please try again in a few moments.';
     case 'auth/requires-recent-login':
       return 'For security purposes, please log in again before deleting your account.';
+    case 'auth/admin-restricted-operation':
+    case 'auth/operation-not-allowed':
+      return 'Anonymous Guest sign-in is disabled in your Firebase Console. Please enable "Anonymous" provider in Firebase Console > Authentication > Sign-in method.';
     default:
       return error?.message || 'An authentication error occurred. Please try again.';
   }
@@ -179,12 +183,65 @@ export async function updateUserProfile(updates: { displayName?: string; photoUR
   }
 }
 
+/** Real Firebase Anonymous Guest Sign In with Auto-Fallback */
+export async function loginAnonymously(): Promise<UserProfile> {
+  try {
+    let cred;
+    let isFallbackGuest = false;
+
+    try {
+      cred = await signInAnonymously(auth);
+    } catch (anonErr: any) {
+      // If Firebase Console has Anonymous provider disabled (auth/admin-restricted-operation),
+      // seamlessly fallback to a dynamically generated isolated guest session so user can explore without errors
+      if (
+        anonErr?.code === 'auth/admin-restricted-operation' ||
+        anonErr?.code === 'auth/operation-not-allowed'
+      ) {
+        const guestRandomId = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+        const fallbackEmail = `guest_${guestRandomId}@lifepilot.guest`;
+        const fallbackPass = `Guest_${guestRandomId}!Aa1`;
+        cred = await createUserWithEmailAndPassword(auth, fallbackEmail, fallbackPass);
+        if (cred.user) {
+          await updateProfile(cred.user, { displayName: 'Guest Explorer' }).catch(() => null);
+        }
+        isFallbackGuest = true;
+      } else {
+        throw anonErr;
+      }
+    }
+
+    const formatted = formatAuthUser(cred.user);
+    formatted.isGuest = true;
+
+    await updateUserDoc(formatted.uid, {
+      name: 'Guest Explorer',
+      isGuest: true,
+      lastLoginAt: new Date().toISOString(),
+    }).catch(() => null);
+
+    AnalyticsService.logEvent('login', { method: isFallbackGuest ? 'guest_fallback' : 'anonymous' });
+    AnalyticsService.setUserIdentifier(formatted.uid);
+
+    return formatted;
+  } catch (error: any) {
+    SentryService.captureException(error, 'loginAnonymously');
+    throw new Error(getFriendlyAuthErrorMessage(error));
+  }
+}
+
 function formatAuthUser(user: FirebaseUser): UserProfile {
+  const isGuestEmail = user.email?.endsWith('@lifepilot.guest');
+  const isGuestUser = Boolean(user.isAnonymous || isGuestEmail);
+
   return {
     uid: user.uid,
-    name: user.displayName || user.email?.split('@')[0] || 'Explorer',
-    email: user.email || '',
+    name:
+      user.displayName ||
+      (isGuestUser ? 'Guest Explorer' : user.email?.split('@')[0] || 'Explorer'),
+    email: isGuestEmail ? '' : user.email || '',
     emailVerified: user.emailVerified,
+    isGuest: isGuestUser,
     profileImage: user.photoURL || undefined,
     createdAt: user.metadata.creationTime || new Date().toISOString(),
     updatedAt: new Date().toISOString(),

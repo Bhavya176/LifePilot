@@ -6,6 +6,7 @@ import {
   deleteUserAccount,
   resetPassword,
   sendVerificationEmail,
+  loginAnonymously,
   auth,
 } from '../firebase/auth';
 import { SentryService } from '../services/sentry';
@@ -18,6 +19,7 @@ interface AuthContextType {
   deleteAccount: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   verifyEmail: () => Promise<void>;
+  continueAsGuest: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   deleteAccount: async () => {},
   sendPasswordReset: async () => {},
   verifyEmail: async () => {},
+  continueAsGuest: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -92,6 +95,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await sendVerificationEmail();
   };
 
+  const continueAsGuest = async () => {
+    setLoading(true);
+    try {
+      const guestProfile = await loginAnonymously();
+      setUser(guestProfile);
+      SentryService.setUser(guestProfile.uid, '', 'Guest Explorer');
+      SentryService.addBreadcrumb('User continued as guest', 'auth', 'info');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -102,6 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         deleteAccount,
         sendPasswordReset,
         verifyEmail,
+        continueAsGuest,
       }}
     >
       {children}

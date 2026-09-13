@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import React, { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../../context/ThemeContext';
@@ -21,19 +22,74 @@ import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
 import { uploadUserFile } from '../../firebase/storage';
 import { updateUserProfile, auth } from '../../firebase/auth';
+import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { isDarkMode } = useTheme();
-  const { user, setUser, verifyEmail, sendPasswordReset } = useAuthContext();
+  const { user, setUser, verifyEmail, sendPasswordReset, signOut, deleteAccount } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
-  const [name, setName] = useState(user?.name || '');
-  const [email] = useState(user?.email || 'user@example.com');
+  const isGuest = !!user?.isGuest;
+  const [name, setName] = useState(user?.name || (isGuest ? 'Guest Explorer' : ''));
+  const [email] = useState(user?.email || (isGuest ? 'Guest Mode (No email linked)' : 'user@example.com'));
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [sendingVerification, setSendingVerification] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = () => {
+    Alert.alert(
+      isGuest ? 'Exit Guest Mode' : 'Sign Out',
+      isGuest
+        ? 'Are you sure you want to exit guest mode? To preserve your tasks, habits, and progress across devices, consider creating a free account.'
+        : 'Are you sure you want to sign out of LifePilot?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isGuest ? 'Exit Guest Mode' : 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoggingOut(true);
+              await HapticsService.medium();
+              await signOut();
+              router.replace('/(auth)/welcome');
+            } catch (err: any) {
+              Alert.alert('Sign Out Error', err?.message || 'Failed to sign out. Please try again.');
+            } finally {
+              setLoggingOut(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete Account Permanently',
+      'Are you absolutely sure? This will delete your LifePilot account and all associated personal data (tasks, habits, notes, expenses, goals, and documents). This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Permanently',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await HapticsService.heavy();
+              await deleteAccount();
+              router.replace('/(auth)/welcome');
+            } catch (e: any) {
+              Alert.alert('Account Deletion Failed', e?.message || 'Could not delete account.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleSendVerification = async () => {
     setSendingVerification(true);
@@ -123,8 +179,49 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
-      <Header title="User Profile" showBack isDarkMode={isDarkMode} />
+      <Header
+        title="User Profile"
+        showBack
+        isDarkMode={isDarkMode}
+        rightAction={
+          <TouchableOpacity
+            style={[
+              styles.headerLogoutBtn,
+              { backgroundColor: isDarkMode ? '#271B20' : '#FEE2E2' },
+            ]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+            accessibilityLabel="Sign Out"
+          >
+            <Ionicons name="log-out-outline" size={ms(18)} color="#EF4444" />
+          </TouchableOpacity>
+        }
+      />
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Guest Mode Banner if exploring as Guest */}
+        {isGuest && (
+          <Card isDarkMode={isDarkMode} style={[styles.guestCard, { borderColor: '#F59E0B' }]}>
+            <View style={styles.guestRow}>
+              <Ionicons name="sparkles" size={ms(22)} color="#F59E0B" />
+              <View style={{ flex: 1, marginLeft: s(SPACING.sm) }}>
+                <Text style={[styles.guestTitle, { color: theme.textPrimary }]}>
+                  Guest Account Active
+                </Text>
+                <Text style={[styles.guestSub, { color: theme.textSecondary }]}>
+                  Create a permanent account to sync your tasks, streaks, and expenses across devices.
+                </Text>
+              </View>
+            </View>
+            <Button
+              title="Create Free Account"
+              size="sm"
+              onPress={() => router.push('/(auth)/register')}
+              isDarkMode={isDarkMode}
+              style={{ marginTop: vs(SPACING.sm) }}
+            />
+          </Card>
+        )}
+
         <View style={styles.avatarSection}>
           <TouchableOpacity
             style={[styles.avatarCircle, { backgroundColor: theme.primaryLight }]}
@@ -163,7 +260,7 @@ export default function ProfileScreen() {
             editable={false}
             isDarkMode={isDarkMode}
             leftIcon={<Ionicons name="mail-outline" size={20} color={theme.textMuted} />}
-            helperText="Email address cannot be changed."
+            helperText={isGuest ? 'Create an account to attach an email.' : 'Email address cannot be changed.'}
           />
 
           <Button
@@ -175,47 +272,108 @@ export default function ProfileScreen() {
           />
         </Card>
 
-        {/* Email Verification Card */}
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
-          Account Verification
-        </Text>
-        <Card isDarkMode={isDarkMode} style={styles.card}>
-          <View style={styles.verifyRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.verifyTitle, { color: theme.textPrimary }]}>Email Status</Text>
-              <Text style={[styles.verifySub, { color: user?.emailVerified ? theme.success : theme.warning }]}>
-                {user?.emailVerified ? '✅ Verified (Firebase Auth Secured)' : '⚠️ Unverified Email'}
-              </Text>
-            </View>
-            {!user?.emailVerified && (
-              <Button
-                title="Verify Email"
-                size="sm"
-                variant="outline"
-                onPress={handleSendVerification}
-                loading={sendingVerification}
-                isDarkMode={isDarkMode}
-              />
-            )}
-          </View>
-        </Card>
+        {/* Email Verification Card - Only for registered accounts */}
+        {!isGuest && (
+          <>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+              Account Verification
+            </Text>
+            <Card isDarkMode={isDarkMode} style={styles.card}>
+              <View style={styles.verifyRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.verifyTitle, { color: theme.textPrimary }]}>Email Status</Text>
+                  <Text style={[styles.verifySub, { color: user?.emailVerified ? theme.success : theme.warning }]}>
+                    {user?.emailVerified ? '✅ Verified (Firebase Auth Secured)' : '⚠️ Unverified Email'}
+                  </Text>
+                </View>
+                {!user?.emailVerified && (
+                  <Button
+                    title="Verify Email"
+                    size="sm"
+                    variant="outline"
+                    onPress={handleSendVerification}
+                    loading={sendingVerification}
+                    isDarkMode={isDarkMode}
+                  />
+                )}
+              </View>
+            </Card>
+          </>
+        )}
 
-        {/* Password Reset Section */}
+        {/* Password Reset Section - Only for registered accounts */}
+        {!isGuest && (
+          <>
+            <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
+              Security & Password
+            </Text>
+            <Card isDarkMode={isDarkMode} style={styles.card}>
+              <Text style={[styles.passwordSub, { color: theme.textSecondary }]}>
+                Need to update your password? Firebase will send a secure password reset link to your email.
+              </Text>
+              <Button
+                title="Send Password Reset Email 🔑"
+                variant="outline"
+                onPress={handleSendResetPassword}
+                loading={sendingReset}
+                isDarkMode={isDarkMode}
+                style={{ marginTop: vs(SPACING.sm) }}
+              />
+            </Card>
+          </>
+        )}
+
+        {/* Account Session & Sign Out Actions */}
         <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.lg) }]}>
-          Security & Password
+          Account Session
         </Text>
         <Card isDarkMode={isDarkMode} style={styles.card}>
-          <Text style={[styles.passwordSub, { color: theme.textSecondary }]}>
-            Need to update your password? Firebase will send a secure password reset link to your email.
-          </Text>
-          <Button
-            title="Send Password Reset Email 🔑"
-            variant="outline"
-            onPress={handleSendResetPassword}
-            loading={sendingReset}
-            isDarkMode={isDarkMode}
-            style={{ marginTop: vs(SPACING.sm) }}
-          />
+          <TouchableOpacity
+            style={[
+              styles.logoutButton,
+              {
+                backgroundColor: isDarkMode ? '#271B20' : '#FEF2F2',
+                borderColor: isDarkMode ? '#7F1D1D' : '#FECACA',
+              },
+            ]}
+            onPress={handleLogout}
+            activeOpacity={0.7}
+            disabled={loggingOut}
+          >
+            {loggingOut ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <>
+                <Ionicons
+                  name="log-out-outline"
+                  size={ms(20)}
+                  color="#EF4444"
+                  style={{ marginRight: s(SPACING.sm) }}
+                />
+                <Text style={styles.logoutText}>
+                  {isGuest ? 'Exit Guest Mode' : 'Sign Out of LifePilot'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {!isGuest && (
+            <TouchableOpacity
+              style={styles.deleteAccountBtn}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={ms(15)}
+                color="#EF4444"
+                style={{ marginRight: s(SPACING.xs) }}
+              />
+              <Text style={styles.deleteAccountText}>
+                Delete Account Permanently
+              </Text>
+            </TouchableOpacity>
+          )}
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -229,6 +387,31 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: s(SPACING.md),
     paddingBottom: vs(SPACING.xl),
+  },
+  headerLogoutBtn: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(RADIUS.md),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestCard: {
+    padding: s(SPACING.md),
+    marginBottom: vs(SPACING.md),
+    borderWidth: 1,
+  },
+  guestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  guestTitle: {
+    fontSize: fs(14),
+    fontWeight: '700',
+  },
+  guestSub: {
+    fontSize: fs(12),
+    marginTop: vs(2),
+    lineHeight: fs(16),
   },
   avatarSection: {
     alignItems: 'center',
@@ -286,5 +469,30 @@ const styles = StyleSheet.create({
     fontSize: fs(12.5),
     lineHeight: fs(18),
     marginBottom: vs(SPACING.xs),
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: vs(12),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1,
+  },
+  logoutText: {
+    fontSize: fs(14.5),
+    fontWeight: '700',
+    color: '#EF4444',
+  },
+  deleteAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: vs(SPACING.md),
+    paddingVertical: vs(SPACING.xs),
+  },
+  deleteAccountText: {
+    fontSize: fs(12.5),
+    color: '#EF4444',
+    fontWeight: '600',
   },
 });

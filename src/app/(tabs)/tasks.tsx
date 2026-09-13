@@ -20,6 +20,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { useTasks } from '../../hooks/useTasks';
 import { exportService } from '../../services/exportService';
 import { useAuthContext } from '../../context/AuthContext';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 import { formatTimeTo12Hour } from '../../utils/dateUtils';
 import { s, vs, ms, fs } from '../../utils/responsive';
 
@@ -31,6 +32,7 @@ export default function TasksScreen() {
   const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const [activeFilter, setActiveFilter] = useState<FilterType>('today');
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
   const { tasks, loading, toggleTask, deleteTask } = useTasks(activeFilter);
 
   const filters: { label: string; value: FilterType }[] = [
@@ -72,7 +74,13 @@ export default function TasksScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addBtn, { backgroundColor: theme.primary }]}
-              onPress={() => router.push('/screens/task-detail')}
+              onPress={() => {
+                if (user?.isGuest) {
+                  setGuestGateVisible(true);
+                  return;
+                }
+                router.push('/screens/task-detail');
+              }}
               activeOpacity={0.8}
             >
               <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -128,7 +136,13 @@ export default function TasksScreen() {
             title="No Tasks Found"
             description="You don't have any tasks matching this filter yet. Tap + to add one."
             actionTitle="Add New Task"
-            onAction={() => router.push('/screens/task-detail')}
+            onAction={() => {
+              if (user?.isGuest) {
+                setGuestGateVisible(true);
+                return;
+              }
+              router.push('/screens/task-detail');
+            }}
             isDarkMode={isDarkMode}
           />
         ) : (
@@ -161,6 +175,7 @@ export default function TasksScreen() {
                         category: task.category,
                         reminder: task.reminder ? 'true' : 'false',
                         notificationId: task.notificationId || '',
+                        alarmMode: task.alarmMode ? 'true' : 'false',
                         imageUrl: task.imageUrl,
                       },
                     })
@@ -237,6 +252,12 @@ export default function TasksScreen() {
           ))
         )}
       </ScrollView>
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Task"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }

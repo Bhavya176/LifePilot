@@ -3,6 +3,7 @@ export interface UserProfile {
   name: string;
   email: string;
   emailVerified?: boolean;
+  isGuest?: boolean;
   profileImage?: string;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string

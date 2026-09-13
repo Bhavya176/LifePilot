@@ -27,11 +27,15 @@ import { Goal } from '../../types/goal';
 import { getTodayString } from '../../utils/dateUtils';
 import { triggerGoalMilestoneAlert } from '../../firebase/messaging';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { useAuthContext } from '../../context/AuthContext';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 
 export default function GoalsScreen() {
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const { goals, loading, addGoal, updateProgress, deleteGoal } = useGoals();
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
 
   // Add Goal Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -50,6 +54,10 @@ export default function GoalsScreen() {
   const [updatingProgress, setUpdatingProgress] = useState(false);
 
   const handleCreateGoal = async () => {
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
     const numTarget = parseFloat(targetValue);
     const numCurrent = parseFloat(currentValue) || 0;
 
@@ -86,6 +94,10 @@ export default function GoalsScreen() {
   };
 
   const handleOpenProgressModal = (goal: Goal) => {
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
     setSelectedGoal(goal);
     setIncrementAmount('1');
     setProgressModalVisible(true);
@@ -149,7 +161,13 @@ export default function GoalsScreen() {
         rightAction={
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: theme.primary }]}
-            onPress={() => setModalVisible(true)}
+            onPress={() => {
+              if (user?.isGuest) {
+                setGuestGateVisible(true);
+                return;
+              }
+              setModalVisible(true);
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -170,7 +188,13 @@ export default function GoalsScreen() {
             title="No Goals Set"
             description="Turn your aspirations into measurable milestones. Tap + to create your first goal."
             actionTitle="Add Personal Goal"
-            onAction={() => setModalVisible(true)}
+            onAction={() => {
+              if (user?.isGuest) {
+                setGuestGateVisible(true);
+                return;
+              }
+              setModalVisible(true);
+            }}
             iconName="trophy-outline"
             isDarkMode={isDarkMode}
           />
@@ -430,6 +454,12 @@ export default function GoalsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Goal"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }

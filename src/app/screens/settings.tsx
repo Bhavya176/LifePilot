@@ -99,7 +99,7 @@ export default function SettingsScreen() {
                 {user?.name || 'Explorer'}
               </Text>
               <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
-                {user?.email || 'user@lifepilot.app'}
+                {user?.isGuest ? 'Guest Session (Local Sync)' : user?.email || 'user@lifepilot.app'}
               </Text>
               <View style={styles.levelRow}>
                 <Badge label={`Lv.${currentLevel.level} ${currentLevel.title}`} variant="primary" isDarkMode={isDarkMode} />
@@ -111,6 +111,42 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
           </TouchableOpacity>
         </Card>
+
+        {/* Guest Mode Account Link Card */}
+        {user?.isGuest && (
+          <Card
+            isDarkMode={isDarkMode}
+            style={[
+              styles.guestBannerCard,
+              {
+                backgroundColor: isDarkMode ? '#1E1B38' : '#FEF3C7',
+                borderColor: isDarkMode ? '#F59E0B' : '#FBBF24',
+              },
+            ]}
+          >
+            <View style={styles.guestBannerRow}>
+              <View style={[styles.guestIconBox, { backgroundColor: isDarkMode ? '#78350F' : '#FDE68A' }]}>
+                <Ionicons name="flash" size={20} color="#D97706" />
+              </View>
+              <View style={{ flex: 1, marginLeft: s(SPACING.sm) }}>
+                <Text style={[styles.guestBannerTitle, { color: isDarkMode ? '#FDE68A' : '#92400E' }]}>
+                  Guest Mode Active
+                </Text>
+                <Text style={[styles.guestBannerSub, { color: isDarkMode ? '#FCD34D' : '#78350F' }]}>
+                  {"You're exploring without an account. Create a free account to permanently sync your tasks and streaks across devices."}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.guestUpgradeBtn, { backgroundColor: theme.primary }]}
+                  onPress={() => router.push('/(auth)/register')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="person-add" size={14} color="#FFFFFF" />
+                  <Text style={styles.guestUpgradeBtnText}>Create Free Account</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Card>
+        )}
 
         {/* Preferences & Appearance */}
         <Text style={[styles.sectionTitle, { color: theme.textPrimary }]}>Appearance & Theme</Text>
@@ -138,34 +174,7 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
-        {/* Expo & EAS Labs Suite */}
-        <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.md) }]}>
-          Expo SDK & EAS Tools
-        </Text>
-        <Card isDarkMode={isDarkMode}>
-          <TouchableOpacity
-            style={styles.linkRow}
-            onPress={async () => {
-              await HapticsService.medium();
-              router.push('/screens/expo-labs' as any);
-            }}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.iconBox, { backgroundColor: isDarkMode ? '#3B0764' : '#F3E8FF' }]}>
-              <Ionicons name="flask" size={18} color="#A855F7" />
-            </View>
-            <View style={{ flex: 1, marginLeft: s(SPACING.sm) }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: s(6) }}>
-                <Text style={[styles.settingLabel, { color: theme.textPrimary }]}>Expo & EAS Labs</Text>
-                <Badge label="New 🧪" variant="primary" isDarkMode={isDarkMode} />
-              </View>
-              <Text style={[styles.settingSub, { color: theme.textSecondary }]}>
-                Test OTA Updates, Haptics, Hardware Battery & KeyStore
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={theme.textMuted} />
-          </TouchableOpacity>
-        </Card>
+
 
         {/* Security & Privacy */}
         <Text style={[styles.sectionTitle, { color: theme.textPrimary, marginTop: vs(SPACING.md) }]}>
@@ -402,6 +411,18 @@ export default function SettingsScreen() {
               <Ionicons name="pulse-outline" size={16} color={theme.primary} />
               <Text style={[styles.diagBtnText, { color: theme.primary }]}>Run Sentry Health Check</Text>
             </TouchableOpacity>
+
+            <View style={styles.divider} />
+            <TouchableOpacity
+              style={styles.diagBtn}
+              onPress={async () => {
+                await HapticsService.medium();
+                router.push('/screens/expo-labs' as any);
+              }}
+            >
+              <Ionicons name="flask-outline" size={16} color="#A855F7" />
+              <Text style={[styles.diagBtnText, { color: '#A855F7' }]}>Open Developer & Hardware Labs</Text>
+            </TouchableOpacity>
           </Card>
         )}
 
@@ -584,5 +605,45 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     fontSize: fs(13),
     fontWeight: '700',
+  },
+  guestBannerCard: {
+    padding: s(SPACING.md),
+    marginBottom: vs(SPACING.md),
+    borderWidth: 1.5,
+  },
+  guestBannerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  guestIconBox: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(18),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestBannerTitle: {
+    fontSize: fs(14),
+    fontWeight: '800',
+    marginBottom: vs(2),
+  },
+  guestBannerSub: {
+    fontSize: fs(12),
+    lineHeight: fs(17),
+    marginBottom: vs(SPACING.sm),
+  },
+  guestUpgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: s(SPACING.md),
+    paddingVertical: vs(7),
+    borderRadius: ms(RADIUS.full),
+    gap: s(6),
+  },
+  guestUpgradeBtnText: {
+    color: '#FFFFFF',
+    fontSize: fs(12),
+    fontWeight: '800',
   },
 });

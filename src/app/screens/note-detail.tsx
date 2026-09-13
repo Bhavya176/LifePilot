@@ -15,17 +15,21 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Header } from '../../components/ui/Header';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
+import { Toast } from '../../components/ui/Toast';
 import { useNotes } from '../../hooks/useNotes';
 import { uploadUserFile } from '../../firebase/storage';
 import { NoteAttachment } from '../../types/note';
 import { formatFileSize } from '../../utils/formatters';
+import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 
 export default function NoteDetailScreen() {
   const router = useRouter();
@@ -48,8 +52,47 @@ export default function NoteDetailScreen() {
   const [attachments, setAttachments] = useState<NoteAttachment[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setToastVisible(true);
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 2200);
+  };
+
+  const handleCopyNote = async () => {
+    // Only copy note content without title as requested
+    const textToCopy = (content || '').trim();
+
+    if (!textToCopy) {
+      Alert.alert('Empty Content', 'Write some note content first before copying.');
+      return;
+    }
+
+    try {
+      await HapticsService.light();
+      await Clipboard.setStringAsync(textToCopy);
+      setCopied(true);
+      showToast('Content copied to clipboard! 📋');
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch {
+      Alert.alert('Copy Error', 'Failed to copy note content.');
+    }
+  };
 
   const handlePickAttachment = () => {
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
     Alert.alert('Attach File or Image', 'Choose the attachment source:', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -198,6 +241,10 @@ export default function NoteDetailScreen() {
       Alert.alert('Validation Error', 'Note title is required.');
       return;
     }
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -249,17 +296,32 @@ export default function NoteDetailScreen() {
         showBack
         isDarkMode={isDarkMode}
         rightAction={
-          <TouchableOpacity
-            style={{ padding: 6 }}
-            onPress={() => setIsPinned(!isPinned)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isPinned ? 'pin' : 'pin-outline'}
-              size={24}
-              color={isPinned ? theme.warning : theme.textMuted}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={{ padding: s(6), marginRight: s(4) }}
+              onPress={handleCopyNote}
+              activeOpacity={0.7}
+              accessibilityLabel="Copy note to clipboard"
+            >
+              <Ionicons
+                name={copied ? 'checkmark-done' : 'copy-outline'}
+                size={22}
+                color={copied ? theme.success : theme.textPrimary}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ padding: s(6) }}
+              onPress={() => setIsPinned(!isPinned)}
+              activeOpacity={0.7}
+              accessibilityLabel="Pin note"
+            >
+              <Ionicons
+                name={isPinned ? 'pin' : 'pin-outline'}
+                size={22}
+                color={isPinned ? theme.warning : theme.textMuted}
+              />
+            </TouchableOpacity>
+          </View>
         }
       />
 
@@ -285,6 +347,36 @@ export default function NoteDetailScreen() {
             numberOfLines={8}
             isDarkMode={isDarkMode}
           />
+
+          {/* Quick Copy Action Bar */}
+          <View style={styles.quickBar}>
+            <TouchableOpacity
+              style={[
+                styles.quickCopyBtn,
+                {
+                  backgroundColor: isDarkMode ? '#1E293B' : '#F1F5F9',
+                  borderColor: copied ? theme.success : (isDarkMode ? '#334155' : '#E2E8F0'),
+                },
+              ]}
+              onPress={handleCopyNote}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={copied ? 'checkmark-done' : 'copy-outline'}
+                size={16}
+                color={copied ? theme.success : theme.primary}
+                style={{ marginRight: s(6) }}
+              />
+              <Text
+                style={[
+                  styles.quickCopyText,
+                  { color: copied ? theme.success : theme.textPrimary },
+                ]}
+              >
+                {copied ? 'Content Copied! 📋' : 'Copy Content to Clipboard 📋'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Attachments Section */}
           <View style={styles.attachmentSection}>
@@ -362,6 +454,17 @@ export default function NoteDetailScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        icon="clipboard-outline"
+        isDarkMode={isDarkMode}
+      />
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Note"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -373,6 +476,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: s(SPACING.md),
     paddingBottom: vs(SPACING.xl),
+  },
+  quickBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: vs(SPACING.md),
+    marginTop: vs(-SPACING.xs),
+  },
+  quickCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(SPACING.sm),
+    paddingVertical: vs(6),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1,
+  },
+  quickCopyText: {
+    fontSize: fs(12.5),
+    fontWeight: '600',
   },
   attachmentSection: {
     marginTop: vs(SPACING.xs),

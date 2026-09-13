@@ -12,16 +12,17 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Input } from './Input';
 import { Button } from './Button';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { useAuthContext } from '../../context/AuthContext';
 import { useTasks } from '../../hooks/useTasks';
 import { useHabits } from '../../hooks/useHabits';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useNotes } from '../../hooks/useNotes';
+import { GuestGateModal } from './GuestGateModal';
 import { getTodayString } from '../../utils/dateUtils';
 
 type QuickAddType = 'task' | 'habit' | 'expense' | 'note' | null;
@@ -38,7 +39,7 @@ export const QuickAddFAB: React.FC = () => {
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const insets = useSafeAreaInsets();
   const fabBottom = Math.max(insets.bottom, 10) + vs(64);
-  const router = useRouter();
+  const { user } = useAuthContext();
 
   const { addTask } = useTasks();
   const { addHabit } = useHabits();
@@ -50,6 +51,8 @@ export const QuickAddFAB: React.FC = () => {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
+  const [gateFeature, setGateFeature] = useState('Task');
 
   const [rotateAnim] = useState(() => new Animated.Value(0));
   const [expandAnim] = useState(() => new Animated.Value(0));
@@ -78,6 +81,13 @@ export const QuickAddFAB: React.FC = () => {
 
   const handleMiniFabPress = (type: QuickAddType) => {
     setExpanded(false);
+    if (user?.isGuest) {
+      setGateFeature(
+        type === 'task' ? 'Task' : type === 'habit' ? 'Habit' : type === 'expense' ? 'Expense' : 'Note'
+      );
+      setGuestGateVisible(true);
+      return;
+    }
     setTitle('');
     setAmount('');
     setModalType(type);
@@ -245,6 +255,12 @@ export const QuickAddFAB: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName={gateFeature}
+        onClose={() => setGuestGateVisible(false)}
+      />
     </>
   );
 };

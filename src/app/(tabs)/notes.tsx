@@ -11,6 +11,7 @@ import {
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { useTheme } from '../../context/ThemeContext';
 import { COLORS, RADIUS, SPACING } from '../../constants/theme';
 import { Card } from '../../components/ui/Card';
@@ -18,16 +19,65 @@ import { Input } from '../../components/ui/Input';
 import { Header } from '../../components/ui/Header';
 import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { Toast } from '../../components/ui/Toast';
 import { useNotes } from '../../hooks/useNotes';
 import { Note } from '../../types/note';
+import { HapticsService } from '../../services/hapticsService';
 import { s, vs, ms, fs } from '../../utils/responsive';
+import { useAuthContext } from '../../context/AuthContext';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 
 export default function NotesScreen() {
   const router = useRouter();
   const { isDarkMode } = useTheme();
+  const { user } = useAuthContext();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
   const { notes, loading, togglePin, deleteNote } = useNotes();
   const [searchQuery, setSearchQuery] = useState('');
+  const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastVisible, setToastVisible] = useState(false);
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setToastVisible(true);
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 2200);
+  };
+
+  const handleCreateNote = () => {
+    HapticsService.light();
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
+    router.push('/screens/note-detail');
+  };
+
+  const handleCopyNote = async (note: Note) => {
+    try {
+      await HapticsService.light();
+      // Only copy note content without title as requested
+      const textToCopy = (note.content || '').trim();
+
+      if (!textToCopy) {
+        Alert.alert('Empty Content', 'This note has no content body to copy.');
+        return;
+      }
+
+      await Clipboard.setStringAsync(textToCopy);
+      setCopiedNoteId(note.id);
+      showToast('Content copied to clipboard! 📋');
+
+      setTimeout(() => {
+        setCopiedNoteId((current) => (current === note.id ? null : current));
+      }, 2000);
+    } catch {
+      Alert.alert('Copy Error', 'Failed to copy note content to clipboard.');
+    }
+  };
 
   const filteredNotes = notes.filter((n) => {
     const q = searchQuery.toLowerCase().trim();
@@ -102,7 +152,21 @@ export default function NotesScreen() {
           <View style={styles.cardActions}>
             <TouchableOpacity
               style={styles.iconBtn}
+              onPress={() => handleCopyNote(note)}
+              accessibilityLabel="Copy note to clipboard"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons
+                name={copiedNoteId === note.id ? 'checkmark-done' : 'copy-outline'}
+                size={18}
+                color={copiedNoteId === note.id ? theme.success : theme.textMuted}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconBtn}
               onPress={() => togglePin(note.id, note.isPinned)}
+              accessibilityLabel="Pin note"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons
                 name={note.isPinned ? 'pin' : 'pin-outline'}
@@ -113,6 +177,8 @@ export default function NotesScreen() {
             <TouchableOpacity
               style={styles.iconBtn}
               onPress={() => handleDeleteNote(note)}
+              accessibilityLabel="Delete note"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="trash-outline" size={18} color={theme.danger} />
             </TouchableOpacity>
@@ -155,7 +221,7 @@ export default function NotesScreen() {
         rightAction={
           <TouchableOpacity
             style={[styles.addBtn, { backgroundColor: theme.primary }]}
-            onPress={() => router.push('/screens/note-detail')}
+            onPress={handleCreateNote}
             activeOpacity={0.8}
           >
             <Ionicons name="add" size={24} color="#FFFFFF" />
@@ -194,7 +260,7 @@ export default function NotesScreen() {
                 : 'Capture your thoughts, ideas, and meeting notes with Firestore sync.'
             }
             actionTitle={searchQuery ? undefined : 'Create First Note'}
-            onAction={searchQuery ? undefined : () => router.push('/screens/note-detail')}
+            onAction={searchQuery ? undefined : handleCreateNote}
             iconName="document-text-outline"
             isDarkMode={isDarkMode}
           />
@@ -230,6 +296,17 @@ export default function NotesScreen() {
           </>
         )}
       </ScrollView>
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        icon="clipboard-outline"
+        isDarkMode={isDarkMode}
+      />
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Note"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }

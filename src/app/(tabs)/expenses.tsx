@@ -31,6 +31,8 @@ import { useBudgets } from '../../hooks/useBudgets';
 import { exportService } from '../../services/exportService';
 import { useAuthContext } from '../../context/AuthContext';
 import { Expense, ExpenseCategory } from '../../types/expense';
+import { HapticsService } from '../../services/hapticsService';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 
 export default function ExpensesScreen() {
   const { isDarkMode } = useTheme();
@@ -43,6 +45,7 @@ export default function ExpensesScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [budgetModalVisible, setBudgetModalVisible] = useState(false);
   const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [guestGateVisible, setGuestGateVisible] = useState(false);
 
   // Expense form state
   const [amount, setAmount] = useState('');
@@ -80,6 +83,22 @@ export default function ExpensesScreen() {
     return (e.category || '').toLowerCase() === selectedCategory.toLowerCase();
   });
 
+  const handleOpenAddExpense = (presetCat?: ExpenseCategory) => {
+    HapticsService.light();
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
+    if (presetCat) {
+      setCategory(presetCat);
+    } else if (selectedCategory !== 'all') {
+      setCategory(selectedCategory);
+    } else {
+      setCategory('Food');
+    }
+    setModalVisible(true);
+  };
+
   const handleCreateExpense = async () => {
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
@@ -109,11 +128,16 @@ export default function ExpensesScreen() {
         await checkAlert(category, catMonthSpent, targetBudget.monthlyLimit);
       }
 
+      await HapticsService.success();
       setAmount('');
       setDescription('');
       setDate(getTodayString());
-      setCategory('Food');
       setModalVisible(false);
+
+      // Auto-switch filter so user immediately sees their newly created expense
+      if (selectedCategory !== 'all' && selectedCategory.toLowerCase() !== category.toLowerCase()) {
+        setSelectedCategory(category);
+      }
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to save expense in Firestore.');
     } finally {
@@ -122,6 +146,10 @@ export default function ExpensesScreen() {
   };
 
   const handleOpenBudgetModal = (catToEdit?: ExpenseCategory) => {
+    if (user?.isGuest) {
+      setGuestGateVisible(true);
+      return;
+    }
     const targetCat = catToEdit || 'Food';
     setBudgetCat(targetCat);
     const existing = budgets.find((b) => (b.category || '').toLowerCase() === targetCat.toLowerCase());
@@ -202,17 +230,32 @@ export default function ExpensesScreen() {
         subtitle="Spending analytics & monthly budgets"
         isDarkMode={isDarkMode}
         rightAction={
-          <TouchableOpacity
-            style={[
-              styles.exportPillBtn,
-              { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF', borderColor: theme.border },
-            ]}
-            onPress={() => setExportModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="download-outline" size={16} color={theme.primary} />
-            <Text style={[styles.exportPillText, { color: theme.primary }]}>Export</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              style={[
+                styles.exportPillBtn,
+                {
+                  backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF',
+                  borderColor: theme.border,
+                  marginRight: s(SPACING.xs),
+                },
+              ]}
+              onPress={() => setExportModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="download-outline" size={16} color={theme.primary} />
+              <Text style={[styles.exportPillText, { color: theme.primary }]}>Export</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.addBtn, { backgroundColor: theme.primary }]}
+              onPress={() => handleOpenAddExpense()}
+              activeOpacity={0.8}
+              accessibilityLabel="Add Expense"
+            >
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
         }
       />
 
@@ -351,6 +394,21 @@ export default function ExpensesScreen() {
               ? `All Expenses (${expenses.length})`
               : `${getCategoryMeta(selectedCategory).label} (${filteredExpenses.length})`}
           </Text>
+          <TouchableOpacity
+            style={[
+              styles.addExpenseInlineBtn,
+              { backgroundColor: isDarkMode ? '#312E81' : '#EEF2FF' },
+            ]}
+            onPress={() => handleOpenAddExpense()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="add-circle" size={16} color={theme.primary} style={{ marginRight: s(4) }} />
+            <Text style={[styles.addExpenseInlineText, { color: theme.primary }]}>
+              {selectedCategory === 'all'
+                ? 'Add Expense'
+                : `Add ${getCategoryMeta(selectedCategory).label}`}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {loading ? (
@@ -368,12 +426,12 @@ export default function ExpensesScreen() {
                 ? "You haven't recorded any expenses yet. Tap + to log your first spend."
                 : `No expenses found in the "${getCategoryMeta(selectedCategory).label}" category.`
             }
-            actionTitle={selectedCategory === 'all' ? 'Add Expense' : 'Show All Expenses'}
-            onAction={
+            actionTitle={
               selectedCategory === 'all'
-                ? () => setModalVisible(true)
-                : () => setSelectedCategory('all')
+                ? 'Add Expense'
+                : `Add ${getCategoryMeta(selectedCategory).label} Expense`
             }
+            onAction={() => handleOpenAddExpense()}
             iconName="wallet-outline"
             isDarkMode={isDarkMode}
           />
@@ -655,6 +713,12 @@ export default function ExpensesScreen() {
           </View>
         </View>
       </Modal>
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Expense"
+        onClose={() => setGuestGateVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -673,6 +737,24 @@ const styles = StyleSheet.create({
     gap: s(4),
   },
   exportPillText: {
+    fontSize: fs(12),
+    fontWeight: '700',
+  },
+  addBtn: {
+    width: ms(36),
+    height: ms(36),
+    borderRadius: ms(RADIUS.full),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addExpenseInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(10),
+    paddingVertical: vs(5),
+    borderRadius: ms(RADIUS.full),
+  },
+  addExpenseInlineText: {
     fontSize: fs(12),
     fontWeight: '700',
   },

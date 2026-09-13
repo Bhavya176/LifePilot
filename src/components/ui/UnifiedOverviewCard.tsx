@@ -14,7 +14,7 @@ interface UnifiedOverviewCardProps {
   totalXP: number;
   currentLevel: UserLevel;
   levelProgress: number;
-  status: string;
+  status?: string;
   tasksCompleted: number;
   tasksTotal: number;
   habitsCompleted: number;
@@ -22,7 +22,7 @@ interface UnifiedOverviewCardProps {
   bestStreak: number;
   todayExpense: number;
   activeGoal: Goal | null;
-  onStatusPress: () => void;
+  onStatusPress?: () => void;
   onAnalyticsPress: () => void;
   onGoalPress: () => void;
   isDarkMode?: boolean;
@@ -50,7 +50,7 @@ export const UnifiedOverviewCard: React.FC<UnifiedOverviewCardProps> = ({
 
   return (
     <Card isDarkMode={isDarkMode} style={styles.container}>
-      {/* Top Header: Level Badge & Status Pill */}
+      {/* Top Header: Level Badge & Insights Action */}
       <View style={styles.topHeader}>
         <TouchableOpacity
           style={styles.levelClickable}
@@ -74,8 +74,8 @@ export const UnifiedOverviewCard: React.FC<UnifiedOverviewCardProps> = ({
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={onStatusPress} activeOpacity={0.7}>
-          <Badge label={`Status: ${status}`} variant="info" isDarkMode={isDarkMode} />
+        <TouchableOpacity onPress={onAnalyticsPress} activeOpacity={0.7}>
+          <Badge label="Insights 📊" variant="primary" isDarkMode={isDarkMode} />
         </TouchableOpacity>
       </View>
 

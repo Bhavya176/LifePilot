@@ -24,14 +24,14 @@ import { useTasks } from '../../hooks/useTasks';
 import { useHabits } from '../../hooks/useHabits';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useGoals } from '../../hooks/useGoals';
-import { useLiveStatus } from '../../hooks/useLiveStatus';
-import { useFocusRoom } from '../../hooks/useFocusRoom';
 import { useRemoteConfig } from '../../hooks/useRemoteConfig';
 import { useGamification } from '../../hooks/useGamification';
 import { DynamicAnnouncementBanner } from '../../components/ui/DynamicAnnouncementBanner';
 import { DynamicDailyQuoteCard } from '../../components/ui/DynamicDailyQuoteCard';
 import { UnifiedOverviewCard } from '../../components/ui/UnifiedOverviewCard';
 import { LevelUpOverlay } from '../../components/ui/LevelUpOverlay';
+import { CelebrationModal } from '../../components/ui/CelebrationModal';
+import { GuestGateModal } from '../../components/ui/GuestGateModal';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -42,13 +42,20 @@ export default function HomeScreen() {
   const { profile: xpProfile, currentLevel, levelProgress, levelUpVisible, dismissLevelUp } = useGamification();
   const theme = isDarkMode ? COLORS.dark : COLORS.light;
 
-  // Real-time live Firestore & Realtime DB hooks
+  const [celebrationData, setCelebrationData] = React.useState<{
+    title: string;
+    message: string;
+    badgeEmoji: string;
+  } | null>(null);
+  const [guestGateVisible, setGuestGateVisible] = React.useState(false);
+  const celebratedTasksRef = React.useRef(false);
+  const celebratedHabitsRef = React.useRef(false);
+
+  // Real-time live Firestore hooks
   const { tasks, toggleTask } = useTasks();
   const { habits, toggleHabit } = useHabits();
   const { expenses } = useExpenses();
   const { goals } = useGoals();
-  const { status } = useLiveStatus();
-  const { activeUsers: focusUsers } = useFocusRoom();
 
   const greeting = getGreeting();
   const userName = user?.name || 'Explorer';
@@ -67,6 +74,28 @@ export default function HomeScreen() {
   const activeGoal = goals.length > 0 ? goals[0] : null;
   const todayTasks = tasks.slice(0, 3); // Display top 3 tasks on dashboard
 
+  React.useEffect(() => {
+    if (tasksTotal > 0 && tasksCompleted === tasksTotal && !celebratedTasksRef.current) {
+      celebratedTasksRef.current = true;
+      setCelebrationData({
+        title: "All Today's Tasks Done!",
+        message: `Incredible focus! You've conquered all ${tasksTotal} tasks planned for today. Your momentum is at peak!`,
+        badgeEmoji: '🏆',
+      });
+    }
+  }, [tasksTotal, tasksCompleted]);
+
+  React.useEffect(() => {
+    if (habitsTotal > 0 && habitsCompleted === habitsTotal && !celebratedHabitsRef.current) {
+      celebratedHabitsRef.current = true;
+      setCelebrationData({
+        title: 'All Daily Habits Mastered!',
+        message: `Pure consistency! You've locked in all ${habitsTotal} habits today. Your streaks are protected!`,
+        badgeEmoji: '🔥',
+      });
+    }
+  }, [habitsTotal, habitsCompleted]);
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]}>
       {/* Header Bar */}
@@ -82,30 +111,16 @@ export default function HomeScreen() {
 
         <View style={styles.topIcons}>
           {!isOnline && (
-            <TouchableOpacity
-              style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}
-              onPress={() => router.push('/screens/settings')}
-            >
-              <Ionicons name="cloud-offline" size={20} color="#D97706" />
-            </TouchableOpacity>
+            <View style={[styles.offlineChip, { backgroundColor: isDarkMode ? '#78350F' : '#FEF3C7' }]}>
+              <Ionicons name="cloud-offline" size={13} color="#D97706" />
+              <Text style={styles.offlineText}>Offline</Text>
+            </View>
           )}
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: theme.card }]}
             onPress={() => router.push('/screens/search')}
           >
             <Ionicons name="search-outline" size={20} color={theme.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: theme.card }]}
-            onPress={() => router.push('/screens/calendar')}
-          >
-            <Ionicons name="calendar-outline" size={20} color={theme.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: theme.card }]}
-            onPress={() => router.push('/screens/live-status')}
-          >
-            <Ionicons name="radio-outline" size={20} color={theme.accent} />
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.iconBtn, { backgroundColor: theme.card }]}
@@ -119,12 +134,6 @@ export default function HomeScreen() {
             onPress={() => router.push('/screens/profile')}
           >
             <Ionicons name="person-circle-outline" size={24} color={theme.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.iconBtn, { backgroundColor: theme.card }]}
-            onPress={() => router.push('/screens/settings')}
-          >
-            <Ionicons name="settings-outline" size={20} color={theme.textPrimary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -153,7 +162,6 @@ export default function HomeScreen() {
           totalXP={xpProfile.totalXP}
           currentLevel={currentLevel}
           levelProgress={levelProgress}
-          status={status}
           tasksCompleted={tasksCompleted}
           tasksTotal={tasksTotal}
           habitsCompleted={habitsCompleted}
@@ -161,132 +169,49 @@ export default function HomeScreen() {
           bestStreak={xpProfile.bestStreak}
           todayExpense={todayExpense}
           activeGoal={activeGoal}
-          onStatusPress={() => router.push('/screens/live-status')}
           onAnalyticsPress={() => router.push('/screens/analytics')}
           onGoalPress={() => router.push('/screens/goals')}
           isDarkMode={isDarkMode}
         />
 
-        {/* Real-Time Live Community & Focus Room Hub */}
-        <Card isDarkMode={isDarkMode} style={styles.communityCard}>
-          <View style={styles.communityHeader}>
-            <View style={styles.communityTitleRow}>
-              <View style={[styles.pulseCircle, { backgroundColor: '#10B981' }]} />
-              <Text style={[styles.communityTitle, { color: theme.textPrimary }]}>
-                Live Co-Working & Chat
-              </Text>
-            </View>
-            <Text style={[styles.activeUsersCount, { color: theme.primary }]}>
-              👥 {focusUsers.length} Active Now
-            </Text>
-          </View>
-          <Text style={[styles.communitySub, { color: theme.textSecondary }]}>
-            Work live alongside community members or join the real-time discussion chat.
-          </Text>
-          <View style={styles.communityButtonsRow}>
-            <TouchableOpacity
-              style={[styles.hubBtn, { backgroundColor: theme.primary }]}
-              onPress={() => router.push('/screens/focus-room')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="people" size={15} color="#FFFFFF" />
-              <Text style={styles.hubBtnText} numberOfLines={1}>Focus Room</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.hubBtnOutline,
-                { borderColor: theme.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' },
-              ]}
-              onPress={() => router.push('/screens/pomodoro')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="timer-outline" size={15} color="#EF4444" />
-              <Text style={[styles.hubBtnOutlineText, { color: theme.textPrimary }]} numberOfLines={1}>Pomodoro</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.hubBtnOutline,
-                { borderColor: theme.border, backgroundColor: isDarkMode ? '#1E293B' : '#F8FAFC' },
-              ]}
-              onPress={() => router.push('/screens/community-chat')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubbles-outline" size={15} color={theme.primary} />
-              <Text style={[styles.hubBtnOutlineText, { color: theme.textPrimary }]} numberOfLines={1}>Live Chat</Text>
-            </TouchableOpacity>
-          </View>
-        </Card>
-
-        {/* Quick Actions */}
-        <Text style={[styles.sectionHeader, { color: theme.textPrimary }]}>Quick Actions</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.quickAddScroll}>
+        {/* Productivity Tools Quick Pills */}
+        <View style={styles.toolsRow}>
           <TouchableOpacity
-            style={[styles.quickAddBtn, { backgroundColor: theme.primaryLight }]}
-            onPress={() => router.push('/screens/task-detail')}
+            style={[styles.toolChip, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push('/screens/pomodoro')}
             activeOpacity={0.7}
           >
-            <Ionicons name="add-circle" size={26} color={theme.primary} />
-            <Text style={[styles.quickAddText, { color: theme.primary }]}>Add Task</Text>
+            <Ionicons name="timer-outline" size={16} color="#EF4444" />
+            <Text style={[styles.toolChipText, { color: theme.textPrimary }]}>Pomodoro</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.quickAddBtn,
-              { backgroundColor: isDarkMode ? 'rgba(217, 119, 6, 0.18)' : '#FEF3C7' },
-            ]}
-            onPress={() => router.push('/(tabs)/habits')}
+            style={[styles.toolChip, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push('/screens/calendar')}
             activeOpacity={0.7}
           >
-            <Ionicons name="flame" size={26} color={isDarkMode ? '#FBBF24' : '#D97706'} />
-            <Text style={[styles.quickAddText, { color: isDarkMode ? '#FCD34D' : '#B45309' }]}>
-              Add Habit
-            </Text>
+            <Ionicons name="calendar-outline" size={16} color={theme.primary} />
+            <Text style={[styles.toolChipText, { color: theme.textPrimary }]}>Calendar</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.quickAddBtn,
-              { backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.18)' : '#D1FAE5' },
-            ]}
-            onPress={() => router.push('/(tabs)/expenses')}
+            style={[styles.toolChip, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push('/screens/goals')}
             activeOpacity={0.7}
           >
-            <Ionicons name="wallet" size={26} color={isDarkMode ? '#34D399' : '#059669'} />
-            <Text style={[styles.quickAddText, { color: isDarkMode ? '#6EE7B7' : '#047857' }]}>
-              Add Expense
-            </Text>
+            <Ionicons name="flag-outline" size={16} color="#F59E0B" />
+            <Text style={[styles.toolChipText, { color: theme.textPrimary }]}>Goals</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.quickAddBtn,
-              { backgroundColor: isDarkMode ? 'rgba(59, 130, 246, 0.18)' : '#DBEAFE' },
-            ]}
-            onPress={() => router.push('/screens/note-detail')}
+            style={[styles.toolChip, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={() => router.push('/screens/analytics')}
             activeOpacity={0.7}
           >
-            <Ionicons name="document-text" size={26} color={isDarkMode ? '#60A5FA' : '#2563EB'} />
-            <Text style={[styles.quickAddText, { color: isDarkMode ? '#93C5FD' : '#1D4ED8' }]}>
-              Add Note
-            </Text>
+            <Ionicons name="bar-chart-outline" size={16} color="#10B981" />
+            <Text style={[styles.toolChipText, { color: theme.textPrimary }]}>Analytics</Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.quickAddBtn,
-              { backgroundColor: isDarkMode ? 'rgba(168, 85, 247, 0.18)' : '#F3E8FF' },
-            ]}
-            onPress={() => router.push('/screens/documents')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="cloud-upload" size={26} color={isDarkMode ? '#C084FC' : '#9333EA'} />
-            <Text style={[styles.quickAddText, { color: isDarkMode ? '#D8B4FE' : '#7E22CE' }]}>
-              Upload Doc
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
+        </View>
 
         {/* Section 1: Today's Tasks */}
         <View style={styles.sectionHeaderRow}>
@@ -303,7 +228,13 @@ export default function HomeScreen() {
               title="No Tasks Found"
               description="Tap + Add Task to create your first task."
               actionTitle="Add Task"
-              onAction={() => router.push('/screens/task-detail')}
+              onAction={() => {
+                if (user?.isGuest) {
+                  setGuestGateVisible(true);
+                  return;
+                }
+                router.push('/screens/task-detail');
+              }}
               isDarkMode={isDarkMode}
             />
           ) : (
@@ -397,21 +328,21 @@ export default function HomeScreen() {
           )}
         </Card>
 
-        {/* Section 3: Productivity Summary Banner */}
+        {/* Section 3: Productivity Insights & Analytics Banner */}
         <TouchableOpacity
           activeOpacity={0.9}
-          onPress={() => router.push('/screens/summary')}
+          onPress={() => router.push('/screens/analytics')}
           style={{ marginTop: SPACING.md, marginBottom: SPACING.xl }}
         >
           <Card isDarkMode={isDarkMode} style={[styles.summaryBanner, { backgroundColor: theme.primary }]}>
             <View style={styles.summaryBannerContent}>
               <Ionicons name="analytics" size={32} color="#FFFFFF" />
               <View style={{ marginLeft: SPACING.md, flex: 1 }}>
-                <Text style={styles.summaryBannerTitle}>Daily Productivity Summary</Text>
+                <Text style={styles.summaryBannerTitle}>Productivity Insights & Analytics</Text>
                 <Text style={styles.summaryBannerSubtitle}>
                   {tasksTotal > 0
-                    ? `You've completed ${tasksCompleted}/${tasksTotal} tasks today. Tap to view insights!`
-                    : 'Tap to view AI-generated daily productivity insights.'}
+                    ? `You've completed ${tasksCompleted}/${tasksTotal} tasks today. Tap to view insights & trends!`
+                    : 'Tap to view AI-generated productivity insights & weekly trends.'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
@@ -426,6 +357,22 @@ export default function HomeScreen() {
         level={currentLevel}
         onDismiss={dismissLevelUp}
         isDarkMode={isDarkMode}
+      />
+
+      {/* Daily Milestone Celebration Overlay */}
+      <CelebrationModal
+        visible={!!celebrationData}
+        title={celebrationData?.title || ''}
+        message={celebrationData?.message || ''}
+        badgeEmoji={celebrationData?.badgeEmoji}
+        onDismiss={() => setCelebrationData(null)}
+        isDarkMode={isDarkMode}
+      />
+
+      <GuestGateModal
+        visible={guestGateVisible}
+        featureName="Task"
+        onClose={() => setGuestGateVisible(false)}
       />
     </SafeAreaView>
   );
@@ -543,22 +490,41 @@ const styles = StyleSheet.create({
     fontSize: fs(14),
     fontWeight: '600',
   },
-  quickAddScroll: {
-    marginBottom: vs(SPACING.sm),
+  offlineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: s(SPACING.xs + 2),
+    paddingVertical: vs(4),
+    borderRadius: ms(RADIUS.full),
+    marginRight: s(SPACING.xs),
+    gap: s(4),
   },
-  quickAddBtn: {
-    paddingHorizontal: s(SPACING.md),
-    paddingVertical: vs(SPACING.sm + 2),
-    borderRadius: ms(RADIUS.md),
-    marginRight: s(SPACING.sm),
+  offlineText: {
+    fontSize: fs(11),
+    fontWeight: '600',
+    color: '#D97706',
+  },
+  toolsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: s(SPACING.xs),
+    marginBottom: vs(SPACING.sm),
+    marginTop: vs(SPACING.xs),
+  },
+  toolChip: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: s(90),
+    paddingVertical: vs(SPACING.sm),
+    paddingHorizontal: s(2),
+    borderRadius: ms(RADIUS.md),
+    borderWidth: 1,
+    gap: s(4),
   },
-  quickAddText: {
-    fontSize: fs(12),
-    fontWeight: '700',
-    marginTop: vs(4),
+  toolChipText: {
+    fontSize: fs(11.5),
+    fontWeight: '600',
   },
   taskRow: {
     flexDirection: 'row',
@@ -610,73 +576,5 @@ const styles = StyleSheet.create({
     color: '#E0E7FF',
     fontSize: fs(12),
     marginTop: vs(2),
-  },
-  communityCard: {
-    padding: s(SPACING.md),
-    marginBottom: vs(SPACING.md),
-  },
-  communityHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: vs(4),
-  },
-  communityTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  pulseCircle: {
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
-    marginRight: s(6),
-  },
-  communityTitle: {
-    fontSize: fs(14.5),
-    fontWeight: '700',
-  },
-  activeUsersCount: {
-    fontSize: fs(12),
-    fontWeight: '700',
-  },
-  communitySub: {
-    fontSize: fs(12),
-    lineHeight: fs(17),
-    marginBottom: vs(SPACING.sm),
-  },
-  communityButtonsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: s(6),
-  },
-  hubBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: vs(8),
-    paddingHorizontal: s(4),
-    borderRadius: ms(RADIUS.md),
-  },
-  hubBtnText: {
-    color: '#FFFFFF',
-    fontSize: fs(11),
-    fontWeight: '700',
-    marginLeft: s(3),
-  },
-  hubBtnOutline: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: vs(8),
-    paddingHorizontal: s(4),
-    borderRadius: ms(RADIUS.md),
-    borderWidth: 1,
-  },
-  hubBtnOutlineText: {
-    fontSize: fs(11),
-    fontWeight: '700',
-    marginLeft: s(3),
   },
 });

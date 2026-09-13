@@ -42,13 +42,22 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
 
     permissionGranted = finalStatus === 'granted';
 
-    // 2. Setup Android high-priority channel
+    // 2. Setup Android high-priority channels
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'LifePilot Alerts',
         importance: Notifications.AndroidImportance.MAX,
         vibrationPattern: [0, 250, 250, 250],
         lightColor: '#6366F1',
+      });
+      await Notifications.setNotificationChannelAsync('task_alarms', {
+        name: '🚨 Urgent Task Alarms',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 600, 300, 600, 300, 800],
+        lightColor: '#EF4444',
+        sound: 'default',
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd: true,
       });
     }
 
@@ -183,7 +192,7 @@ export async function triggerGoalMilestoneAlert(goalTitle: string, progressPct: 
 }
 
 /**
- * ⏰ Schedule Task Reminder Notification (One-time or Daily recurring)
+ * ⏰ Schedule Task Reminder Notification (Standard or Persistent Repeat Alarm)
  */
 export async function scheduleTaskReminder(params: {
   taskId?: string;
@@ -192,8 +201,9 @@ export async function scheduleTaskReminder(params: {
   dueDate: string; // YYYY-MM-DD
   dueTime: string; // HH:mm
   isDaily?: boolean;
+  isAlarm?: boolean;
 }): Promise<string | null> {
-  const { taskId, taskTitle, taskDescription, dueDate, dueTime, isDaily } = params;
+  const { taskId, taskTitle, taskDescription, dueDate, dueTime, isDaily, isAlarm } = params;
 
   try {
     const [hourStr, minStr] = dueTime.split(':');
@@ -215,19 +225,25 @@ export async function scheduleTaskReminder(params: {
       }
     }
 
-    const content: Notifications.NotificationContentInput = {
-      title: `⏰ Task Reminder: ${taskTitle}`,
-      body: taskDescription ? taskDescription : `It's time to work on "${taskTitle}"!`,
-      sound: true,
-      data: {
-        type: 'task',
-        taskId: taskId || '',
-      },
-    };
+    const scheduledIds: string[] = [];
 
     if (isDaily) {
       // Repeat daily at specified hour and minute
-      const notificationId = await Notifications.scheduleNotificationAsync({
+      const content: Notifications.NotificationContentInput = {
+        title: isAlarm ? `🚨 ALARM: ${taskTitle}` : `⏰ Task Reminder: ${taskTitle}`,
+        body: taskDescription ? taskDescription : `It's time to work on "${taskTitle}"!`,
+        sound: true,
+        data: {
+          type: isAlarm ? 'task_alarm' : 'task',
+          taskId: taskId || '',
+          taskTitle,
+          dueTime,
+          isAlarm: !!isAlarm,
+        },
+        ...(Platform.OS === 'android' ? { channelId: isAlarm ? 'task_alarms' : 'default' } : {}),
+      };
+
+      const id = await Notifications.scheduleNotificationAsync({
         content,
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -235,30 +251,64 @@ export async function scheduleTaskReminder(params: {
           minute,
         },
       });
-      return notificationId;
+      if (id) scheduledIds.push(id);
+      return scheduledIds.join(',');
     }
 
     // Specific date/time trigger (e.g. today or tomorrow)
     const [year, month, day] = dueDate.split('-').map(Number);
     if (!year || !month || !day) return null;
 
-    const targetDate = new Date(year, month - 1, day, hour, minute, 0);
+    const baseTargetDate = new Date(year, month - 1, day, hour, minute, 0);
     const now = new Date();
 
-    // If target date is in the past, do not schedule
-    if (targetDate.getTime() <= now.getTime()) {
+    // If base target date is in the past, do not schedule
+    if (baseTargetDate.getTime() <= now.getTime()) {
       return null;
     }
 
-    const notificationId = await Notifications.scheduleNotificationAsync({
-      content,
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DATE,
-        date: targetDate,
-      },
-    });
+    // If Persistent Alarm Mode is ON, schedule 5 sequential repeat alarms (T, T+1m, T+2m, T+3m, T+5m)
+    const minuteOffsets = isAlarm ? [0, 1, 2, 3, 5] : [0];
 
-    return notificationId;
+    for (const offset of minuteOffsets) {
+      const targetDate = new Date(baseTargetDate.getTime() + offset * 60 * 1000);
+      if (targetDate.getTime() <= now.getTime()) continue;
+
+      const content: Notifications.NotificationContentInput = {
+        title: isAlarm
+          ? (offset === 0 ? `🚨 ALARM: ${taskTitle}` : `🚨 URGENT ALARM: ${taskTitle}`)
+          : `⏰ Task Reminder: ${taskTitle}`,
+        body: isAlarm
+          ? (offset === 0
+              ? (taskDescription || `It's time to work on "${taskTitle}"! Tap to open alarm.`)
+              : `⚠️ REMINDER (${offset}m elapsed): "${taskTitle}" is pending! Tap to dismiss.`)
+          : (taskDescription || `It's time to work on "${taskTitle}"!`),
+        sound: true,
+        data: {
+          type: isAlarm ? 'task_alarm' : 'task',
+          taskId: taskId || '',
+          taskTitle,
+          dueTime,
+          isAlarm: !!isAlarm,
+          offsetMinute: offset,
+        },
+        ...(Platform.OS === 'android' ? { channelId: isAlarm ? 'task_alarms' : 'default' } : {}),
+      };
+
+      const notifId = await Notifications.scheduleNotificationAsync({
+        content,
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: targetDate,
+        },
+      });
+
+      if (notifId) {
+        scheduledIds.push(notifId);
+      }
+    }
+
+    return scheduledIds.length > 0 ? scheduledIds.join(',') : null;
   } catch (error) {
     console.warn('[scheduleTaskReminder Error]:', error);
     return null;
@@ -266,13 +316,52 @@ export async function scheduleTaskReminder(params: {
 }
 
 /**
- * 🔕 Cancel a scheduled task reminder notification
+ * 🔕 Cancel a scheduled task reminder notification (single or comma-separated list of IDs)
  */
 export async function cancelTaskReminder(notificationId?: string): Promise<void> {
   if (!notificationId) return;
   try {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
+    const ids = notificationId.split(',').map((id) => id.trim()).filter(Boolean);
+    await Promise.all(
+      ids.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {}))
+    );
   } catch (error) {
     console.warn('[cancelTaskReminder Error]:', error);
+  }
+}
+
+/**
+ * 💤 Schedule a Snooze Alarm notification (default 5 minutes from now)
+ */
+export async function scheduleSnoozeAlarm(params: {
+  taskId?: string;
+  taskTitle: string;
+  minutes?: number;
+}): Promise<string | null> {
+  const { taskId, taskTitle, minutes = 5 } = params;
+  try {
+    const snoozeDate = new Date(Date.now() + minutes * 60 * 1000);
+    const content: Notifications.NotificationContentInput = {
+      title: `🚨 SNOOZED ALARM: ${taskTitle}`,
+      body: `Snooze timer expired (${minutes}m). Time to finish "${taskTitle}"!`,
+      sound: true,
+      data: {
+        type: 'task_alarm',
+        taskId: taskId || '',
+        taskTitle,
+        isAlarm: true,
+      },
+      ...(Platform.OS === 'android' ? { channelId: 'task_alarms' } : {}),
+    };
+    return await Notifications.scheduleNotificationAsync({
+      content,
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: snoozeDate,
+      },
+    });
+  } catch (error) {
+    console.warn('[scheduleSnoozeAlarm Error]:', error);
+    return null;
   }
 }
