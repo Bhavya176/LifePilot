@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { AppState, AppStateStatus, View, Text, StyleSheet } from 'react-native';
 import { Stack, useNavigationContainerRef, useRouter } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
@@ -28,6 +29,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 function RootLayout() {
   const navigationRef = useNavigationContainerRef();
   const router = useRouter();
+  const [isAppInBackground, setIsAppInBackground] = useState(false);
 
   const [activeAlarm, setActiveAlarm] = React.useState<{
     taskId?: string;
@@ -35,6 +37,17 @@ function RootLayout() {
     dueTime?: string;
     notificationId?: string;
   } | null>(null);
+
+  // App Switcher Privacy Shield: Protect screen from task switcher previews
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      const shouldShield = nextAppState.match(/inactive|background/) !== null;
+      setIsAppInBackground(shouldShield);
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (navigationRef) {
@@ -152,9 +165,50 @@ function RootLayout() {
           </NetworkProvider>
         </ThemeProvider>
       </ErrorBoundary>
+
+      {/* App Switcher Privacy Shield: Prevents OS from taking sensitive screen snapshots */}
+      {isAppInBackground && (
+        <View style={styles.privacyShieldOverlay} pointerEvents="none">
+          <View style={styles.privacyShieldCard}>
+            <Text style={styles.privacyShieldIcon}>🛡️</Text>
+            <Text style={styles.privacyShieldTitle}>LifePilot Privacy Shield</Text>
+            <Text style={styles.privacyShieldSubtitle}>Your personal and financial data is protected</Text>
+          </View>
+        </View>
+      )}
     </GestureHandlerRootView>
   );
 }
+
+const styles = StyleSheet.create({
+  privacyShieldOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#0A0E17',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 99999,
+  },
+  privacyShieldCard: {
+    alignItems: 'center',
+    padding: 24,
+  },
+  privacyShieldIcon: {
+    fontSize: 48,
+    marginBottom: 16,
+  },
+  privacyShieldTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  privacyShieldSubtitle: {
+    color: '#94A3B8',
+    fontSize: 13,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+});
 
 export default Sentry.wrap(RootLayout);
 

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { performSecurityCheck, SecurityAssessment } from '../utils/securityCheck';
 
 const STORAGE_KEY_BIOMETRIC = '@lifepilot_biometric_enabled';
 
@@ -9,6 +10,8 @@ interface SecurityContextType {
   isBiometricSupported: boolean;
   isBiometricEnabled: boolean;
   isVaultLocked: boolean;
+  isDeviceCompromised: boolean;
+  securityThreats: string[];
   toggleBiometric: () => Promise<boolean>;
   authenticateWithBiometrics: (promptMessage?: string) => Promise<boolean>;
   unlockVault: () => Promise<boolean>;
@@ -19,6 +22,8 @@ const SecurityContext = createContext<SecurityContextType>({
   isBiometricSupported: false,
   isBiometricEnabled: false,
   isVaultLocked: false,
+  isDeviceCompromised: false,
+  securityThreats: [],
   toggleBiometric: async () => false,
   authenticateWithBiometrics: async () => false,
   unlockVault: async () => false,
@@ -29,10 +34,21 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isBiometricSupported, setIsBiometricSupported] = useState<boolean>(false);
   const [isBiometricEnabled, setIsBiometricEnabled] = useState<boolean>(false);
   const [isVaultLocked, setIsVaultLocked] = useState<boolean>(false);
+  const [isDeviceCompromised, setIsDeviceCompromised] = useState<boolean>(false);
+  const [securityThreats, setSecurityThreats] = useState<string[]>([]);
 
   useEffect(() => {
     async function checkHardware() {
       try {
+        // Run device integrity and root/jailbreak heuristic check
+        const assessment: SecurityAssessment = await performSecurityCheck();
+        setIsDeviceCompromised(assessment.isDeviceCompromised);
+        setSecurityThreats(assessment.threats);
+
+        if (assessment.isDeviceCompromised) {
+          console.warn('[LifePilot Security Warning] Device integrity threat detected:', assessment.threats);
+        }
+
         const hasHardware = await LocalAuthentication.hasHardwareAsync();
         const isEnrolled = await LocalAuthentication.isEnrolledAsync();
         setIsBiometricSupported(hasHardware && isEnrolled);
@@ -111,6 +127,8 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isBiometricSupported,
         isBiometricEnabled,
         isVaultLocked,
+        isDeviceCompromised,
+        securityThreats,
         toggleBiometric,
         authenticateWithBiometrics,
         unlockVault,
